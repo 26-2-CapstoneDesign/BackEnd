@@ -3,6 +3,7 @@ package com.youthguide.api.review.service;
 import com.youthguide.api.review.domain.CommunityPost;
 import com.youthguide.api.review.dto.CommunityPostUpdateRequest;
 import com.youthguide.api.review.repository.CommunityPostCommandRepository;
+import jakarta.persistence.Version;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,6 +18,7 @@ import java.util.Optional;
 import static com.youthguide.api.review.service.CommunityPostCommandService.UpdateStatus.AUTHOR_MISMATCH;
 import static com.youthguide.api.review.service.CommunityPostCommandService.UpdateStatus.TARGET_NOT_FOUND;
 import static com.youthguide.api.review.service.CommunityPostCommandService.UpdateStatus.UPDATED;
+import static com.youthguide.api.review.service.CommunityPostCommandService.UpdateStatus.VERSION_CONFLICT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -61,11 +63,43 @@ class CommunityPostUpdateServiceTest {
         assertThat(ReflectionTestUtils.getField(post, "certificateId")).isEqualTo(201L);
         assertThat(ReflectionTestUtils.getField(post, "title")).isEqualTo("수정한 시험 후기");
         assertThat(ReflectionTestUtils.getField(post, "body")).isEqualTo("수정한 시험 후기 본문");
+        assertThat(ReflectionTestUtils.getField(post, "lockVersion")).isEqualTo(7L);
         LocalDateTime updatedAt = field(post, "updatedAt");
         assertThat((LocalDateTime) ReflectionTestUtils.getField(post, "createdAt")).isEqualTo(originalCreatedAt);
         assertThat(updatedAt).isBetween(before, after);
         verify(repository).findByPostIdAndPostKind(300L, TEST_POST_KIND);
         verify(repository, never()).save(post);
+    }
+
+    @Test
+    void detectsVersionConflictWithoutChangingPost() {
+        CommunityPost post = existingPost(100L, 200L, 300L, 7L);
+        LocalDateTime originalUpdatedAt = field(post, "updatedAt");
+        when(repository.findByPostIdAndPostKind(300L, TEST_POST_KIND)).thenReturn(Optional.of(post));
+        CommunityPostUpdateRequest request = new CommunityPostUpdateRequest("201", "수정 제목", "수정 본문", "6");
+
+        CommunityPostCommandService.UpdateResult result = service.updatePost(
+                300L,
+                100L,
+                TEST_POST_KIND,
+                request
+        );
+
+        assertThat(result.status()).isEqualTo(VERSION_CONFLICT);
+        assertThat(result.postId()).isEqualTo(300L);
+        assertThat(result.requestedVersion()).isEqualTo(6L);
+        assertThat(result.currentVersion()).isEqualTo(7L);
+        assertThat(ReflectionTestUtils.getField(post, "certificateId")).isEqualTo(200L);
+        assertThat(ReflectionTestUtils.getField(post, "title")).isEqualTo("기존 제목");
+        assertThat(ReflectionTestUtils.getField(post, "body")).isEqualTo("기존 본문");
+        assertThat((LocalDateTime) ReflectionTestUtils.getField(post, "updatedAt")).isEqualTo(originalUpdatedAt);
+        assertThat(ReflectionTestUtils.getField(post, "lockVersion")).isEqualTo(7L);
+        verify(repository, never()).save(post);
+    }
+
+    @Test
+    void keepsJpaVersionMapping() throws NoSuchFieldException {
+        assertThat(CommunityPost.class.getDeclaredField("lockVersion").isAnnotationPresent(Version.class)).isTrue();
     }
 
     @Test

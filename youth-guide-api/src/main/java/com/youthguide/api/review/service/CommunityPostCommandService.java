@@ -47,7 +47,10 @@ public class CommunityPostCommandService {
             return new UpdateResult(UpdateStatus.AUTHOR_MISMATCH, postId, requestedVersion, currentVersion);
         }
 
-        // TODO: requestedVersion과 currentVersion의 충돌 감지 및 공통 예외 매핑은 다음 단계에서 구현한다.
+        if (!requestedVersion.equals(currentVersion)) {
+            return new UpdateResult(UpdateStatus.VERSION_CONFLICT, postId, requestedVersion, currentVersion);
+        }
+
         post.updateContent(
                 Long.valueOf(request.certificateId()),
                 request.title(),
@@ -59,7 +62,8 @@ public class CommunityPostCommandService {
     public enum UpdateStatus {
         UPDATED,
         TARGET_NOT_FOUND,
-        AUTHOR_MISMATCH
+        AUTHOR_MISMATCH,
+        VERSION_CONFLICT
     }
 
     public record UpdateResult(
