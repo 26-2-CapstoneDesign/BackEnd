@@ -2,6 +2,7 @@ package com.youthguide.api.review.service;
 
 import com.youthguide.api.review.domain.CommunityPost;
 import com.youthguide.api.review.dto.CommunityPostCreateRequest;
+import com.youthguide.api.review.dto.CommunityPostUpdateRequest;
 import com.youthguide.api.review.repository.CommunityPostCommandRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,5 +28,45 @@ public class CommunityPostCommandService {
         );
 
         return repository.save(post).getPostId();
+    }
+
+    public UpdateResult updatePost(
+            Long postId,
+            Long authorMemberId,
+            String postKind,
+            CommunityPostUpdateRequest request
+    ) {
+        Long requestedVersion = Long.valueOf(request.version());
+        CommunityPost post = repository.findByPostIdAndPostKind(postId, postKind).orElse(null);
+        if (post == null) {
+            return new UpdateResult(UpdateStatus.TARGET_NOT_FOUND, postId, requestedVersion, null);
+        }
+
+        Long currentVersion = post.getLockVersion();
+        if (!post.isAuthoredBy(authorMemberId)) {
+            return new UpdateResult(UpdateStatus.AUTHOR_MISMATCH, postId, requestedVersion, currentVersion);
+        }
+
+        // TODO: requestedVersion과 currentVersion의 충돌 감지 및 공통 예외 매핑은 다음 단계에서 구현한다.
+        post.updateContent(
+                Long.valueOf(request.certificateId()),
+                request.title(),
+                request.body()
+        );
+        return new UpdateResult(UpdateStatus.UPDATED, postId, requestedVersion, currentVersion);
+    }
+
+    public enum UpdateStatus {
+        UPDATED,
+        TARGET_NOT_FOUND,
+        AUTHOR_MISMATCH
+    }
+
+    public record UpdateResult(
+            UpdateStatus status,
+            Long postId,
+            Long requestedVersion,
+            Long currentVersion
+    ) {
     }
 }

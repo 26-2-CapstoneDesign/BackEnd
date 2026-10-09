@@ -10,6 +10,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Objects;
 
 @Entity
 @Table(name = "community_post")
@@ -47,5 +49,43 @@ public class CommunityPost {
     private Long lockVersion;
 
     protected CommunityPost() {
+    }
+
+    public static CommunityPost create(
+            Long authorMemberId,
+            Long certificateId,
+            String postKind,
+            String title,
+            String body
+    ) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        CommunityPost post = new CommunityPost();
+        post.authorMemberId = authorMemberId;
+        post.certificateId = certificateId;
+        post.postKind = postKind;
+        post.title = title;
+        post.body = body;
+        post.createdAt = now;
+        post.updatedAt = now;
+        return post;
+    }
+
+    public Long getPostId() {
+        return postId;
+    }
+
+    public Long getLockVersion() {
+        return lockVersion;
+    }
+
+    public boolean isAuthoredBy(Long memberId) {
+        return Objects.equals(authorMemberId, memberId);
+    }
+
+    public void updateContent(Long certificateId, String title, String body) {
+        this.certificateId = certificateId;
+        this.title = title;
+        this.body = body;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 }
