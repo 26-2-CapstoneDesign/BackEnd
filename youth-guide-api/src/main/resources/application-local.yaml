@@ -4,3 +4,8 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+app:
+  auth:
+    # 로컬 전용 기본값. 실제 서버에서는 REMEMBER_ME_KEY 환경변수를 쓴다.
+    remember-me-key: ${REMEMBER_ME_KEY:local-only-remember-me-key}
