@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -86,6 +87,30 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.size").value(20));
 
         verify(service).getPosts(null, 0, 20);
+    }
+
+    @Test
+    void returnsBadRequestWhenPageIsNegative() throws Exception {
+        mockMvc.perform(get("/api/v1/community/posts")
+                        .queryParam("page", "-1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.fieldErrors").isArray());
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void returnsBadRequestWhenSizeIsZero() throws Exception {
+        mockMvc.perform(get("/api/v1/community/posts")
+                        .queryParam("size", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.fieldErrors").isArray());
+
+        verifyNoInteractions(service);
     }
 
     @Test
