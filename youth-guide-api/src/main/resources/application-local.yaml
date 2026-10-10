@@ -6,6 +6,11 @@ spring:
   flyway:
     enabled: false
 
+app:
+    auth:
+      # 로컬 전용 기본값. 실제 서버에서는 REMEMBER_ME_KEY 환경변수를 쓴다.
+      remember-me-key: ${REMEMBER_ME_KEY:local-only-remember-me-key}
+
 qnet:
   api:
     certificate-list: #국가자격 종목 목록

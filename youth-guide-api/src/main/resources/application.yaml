@@ -17,6 +17,14 @@ spring:
         jdbc:
           time_zone: UTC
 
+app:
+  auth:
+    # 로그인 상태 유지(remember-me) 쿠키 서명 키. 운영/개발 서버에서는 반드시 환경변수로 설정한다.
+    remember-me-key: ${REMEMBER_ME_KEY}
+  cors:
+    # 프론트 개발 서버 주소(쉼표 구분)
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+
 qnet:
   api:
     certificate-list:
