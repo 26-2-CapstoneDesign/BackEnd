@@ -10,6 +10,8 @@ import com.youthguide.api.global.security.SecurityErrorResponder;
 import com.youthguide.api.review.dto.CommunityPostCreateRequest;
 import com.youthguide.api.review.dto.CommunityPostUpdateRequest;
 import com.youthguide.api.review.service.CommunityPostCommandService;
+import com.youthguide.api.review.service.CommunityPostCommandService.DeleteResult;
+import com.youthguide.api.review.service.CommunityPostCommandService.DeleteStatus;
 import com.youthguide.api.review.service.CommunityPostCommandService.UpdateResult;
 import com.youthguide.api.review.service.CommunityPostCommandService.UpdateStatus;
 import jakarta.persistence.OptimisticLockException;
@@ -30,6 +32,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -191,6 +194,78 @@ class CommunityPostCommandControllerTest {
                 .andExpect(jsonPath("$.code").value("VERSION_CONFLICT"));
     }
 
+    @Test
+    void mapsDeleteJpaOptimisticLockingFailureToVersionConflict() throws Exception {
+        when(service.deletePost(300L, 100L, 7L))
+                .thenThrow(new JpaOptimisticLockingFailureException(new OptimisticLockException()));
+
+        mockMvc.perform(delete("/api/v1/community/posts/300")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .header("X-Expected-Post-Version", "7"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("VERSION_CONFLICT"));
+    }
+
+    @Test
+    void deletesOwnedPostWithExpectedVersion() throws Exception {
+        when(service.deletePost(300L, 100L, 7L))
+                .thenReturn(new DeleteResult(DeleteStatus.DELETED, 300L, 7L, 7L));
+
+        mockMvc.perform(delete("/api/v1/community/posts/300")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .header("X-Expected-Post-Version", "7"))
+                .andExpect(status().isNoContent());
+
+        verify(service).deletePost(300L, 100L, 7L);
+    }
+
+    @Test
+    void mapsDeleteStatusesToCommonErrors() throws Exception {
+        assertDeleteError(DeleteStatus.TARGET_NOT_FOUND, "POST_NOT_FOUND", 404);
+        assertDeleteError(DeleteStatus.AUTHOR_MISMATCH, "ACCESS_DENIED", 403);
+        assertDeleteError(DeleteStatus.VERSION_CONFLICT, "VERSION_CONFLICT", 409);
+    }
+
+    @Test
+    void rejectsMissingExpectedVersionHeader() throws Exception {
+        mockMvc.perform(delete("/api/v1/community/posts/300")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void rejectsMalformedExpectedVersionHeader() throws Exception {
+        mockMvc.perform(delete("/api/v1/community/posts/300")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .header("X-Expected-Post-Version", "not-a-number"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void keepsDeleteAuthenticatedAndCsrfProtected() throws Exception {
+        mockMvc.perform(delete("/api/v1/community/posts/300")
+                        .with(csrf())
+                        .header("X-Expected-Post-Version", "7"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+
+        mockMvc.perform(delete("/api/v1/community/posts/300")
+                        .with(user(LOGIN_MEMBER))
+                        .header("X-Expected-Post-Version", "7"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+    }
+
     private void assertUpdateError(
             CommunityPostUpdateRequest request,
             UpdateStatus status,
@@ -205,6 +280,22 @@ class CommunityPostCommandControllerTest {
                         .with(csrf())
                         .contentType("application/json")
                         .content(updateJson()))
+                .andExpect(status().is(expectedHttpStatus))
+                .andExpect(jsonPath("$.code").value(expectedCode));
+    }
+
+    private void assertDeleteError(
+            DeleteStatus status,
+            String expectedCode,
+            int expectedHttpStatus
+    ) throws Exception {
+        when(service.deletePost(300L, 100L, 7L))
+                .thenReturn(new DeleteResult(status, 300L, 7L, 7L));
+
+        mockMvc.perform(delete("/api/v1/community/posts/300")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .header("X-Expected-Post-Version", "7"))
                 .andExpect(status().is(expectedHttpStatus))
                 .andExpect(jsonPath("$.code").value(expectedCode));
     }

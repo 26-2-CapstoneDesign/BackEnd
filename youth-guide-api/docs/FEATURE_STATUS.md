@@ -46,6 +46,23 @@ features:
     source_revision: 96fb9e68141fe8c59b0a94266abd95dc929d8109
     updated_at: '2026-10-10T11:48:29Z'
     missing_reasons: {}
+  - feature_id: WBS-09-03-REVIEW-DELETE
+    name: 시험후기 삭제·연관 데이터 처리 API
+    human_owner: current_user
+    actor_id: codex
+    implementation_status: IMPLEMENTED
+    work_status: IN_REVIEW
+    acceptance_passed: 12
+    acceptance_total: 12
+    verification_status: PARTIAL
+    review_status: PENDING
+    integration_status: BRANCH_ONLY
+    deployment_status: NOT_APPLICABLE
+    feature_file: docs/features/WBS-09-03-REVIEW-DELETE.md
+    latest_worklog: docs/worklogs/WBS-09-03-REVIEW-DELETE__codex__20261010T165857Z.md
+    source_revision: e98535c94077a48c7ecb9401ecb1e9d32745b0c4
+    updated_at: '2026-10-10T17:03:27Z'
+    missing_reasons: {}
 ```
 새 항목: 아래 필드를 feature_file에서 복사한다. 기억에 의존해 실제 상태를 다시 만들어 넣지 않는다.
 ```yaml

@@ -10,9 +10,11 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 
@@ -41,7 +43,12 @@ public class GlobalExceptionHandler {
 				.body(ErrorResponse.of(ErrorCode.INVALID_INPUT, fieldErrors));
 	}
 
-	@ExceptionHandler({HttpMessageNotReadableException.class, MissingServletRequestParameterException.class})
+	@ExceptionHandler({
+			HttpMessageNotReadableException.class,
+			MissingServletRequestParameterException.class,
+			MissingRequestHeaderException.class,
+			MethodArgumentTypeMismatchException.class
+	})
 	public ResponseEntity<ErrorResponse> handleBadRequest(Exception e) {
 		return toResponse(ErrorCode.INVALID_INPUT);
 	}

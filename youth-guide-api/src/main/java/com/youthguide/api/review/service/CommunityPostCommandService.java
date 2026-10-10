@@ -73,6 +73,31 @@ public class CommunityPostCommandService {
         return new UpdateResult(UpdateStatus.UPDATED, postId, requestedVersion, currentVersion);
     }
 
+    public DeleteResult deletePost(Long postId, Long authorMemberId, Long expectedVersion) {
+        CommunityPost post = repository.findForUpdateByPostIdAndPostKind(
+                postId,
+                CommunityPostKind.EXAM_REVIEW
+        ).orElse(null);
+        if (post == null) {
+            return new DeleteResult(DeleteStatus.TARGET_NOT_FOUND, postId, expectedVersion, null);
+        }
+
+        Long currentVersion = post.getLockVersion();
+        if (!post.isAuthoredBy(authorMemberId)) {
+            return new DeleteResult(DeleteStatus.AUTHOR_MISMATCH, postId, expectedVersion, currentVersion);
+        }
+
+        if (!expectedVersion.equals(currentVersion)) {
+            return new DeleteResult(DeleteStatus.VERSION_CONFLICT, postId, expectedVersion, currentVersion);
+        }
+
+        repository.deletePostLikesByPostId(postId);
+        repository.deletePostMetricByPostId(postId);
+        repository.deletePostReportsByPostId(postId);
+        repository.delete(post);
+        return new DeleteResult(DeleteStatus.DELETED, postId, expectedVersion, currentVersion);
+    }
+
     private void validateCertificateExists(Long certificateId) {
         if (!certificateRepository.existsById(certificateId)) {
             throw new BusinessException(ErrorCode.CERTIFICATE_NOT_FOUND);
@@ -90,6 +115,21 @@ public class CommunityPostCommandService {
             UpdateStatus status,
             Long postId,
             Long requestedVersion,
+            Long currentVersion
+    ) {
+    }
+
+    public enum DeleteStatus {
+        DELETED,
+        TARGET_NOT_FOUND,
+        AUTHOR_MISMATCH,
+        VERSION_CONFLICT
+    }
+
+    public record DeleteResult(
+            DeleteStatus status,
+            Long postId,
+            Long expectedVersion,
             Long currentVersion
     ) {
     }
