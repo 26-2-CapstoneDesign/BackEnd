@@ -5,11 +5,13 @@ import com.youthguide.api.global.exception.ErrorCode;
 import com.youthguide.api.user.domain.Member;
 import com.youthguide.api.user.domain.MemberInputPolicy;
 import com.youthguide.api.user.domain.MemberPassword;
+import com.youthguide.api.user.domain.MemberProfile;
 import com.youthguide.api.user.dto.AvailabilityResponse;
 import com.youthguide.api.user.dto.MeResponse;
 import com.youthguide.api.user.dto.SignupRequest;
 import com.youthguide.api.user.dto.SignupResponse;
 import com.youthguide.api.user.repository.MemberPasswordRepository;
+import com.youthguide.api.user.repository.MemberProfileRepository;
 import com.youthguide.api.user.repository.MemberRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,24 +33,33 @@ public class MemberService {
 
 	private final MemberRepository memberRepository;
 	private final MemberPasswordRepository memberPasswordRepository;
+	private final MemberProfileRepository memberProfileRepository;
 	private final PasswordEncoder passwordEncoder;
 
 	public MemberService(MemberRepository memberRepository,
 			MemberPasswordRepository memberPasswordRepository,
+			MemberProfileRepository memberProfileRepository,
 			PasswordEncoder passwordEncoder) {
 		this.memberRepository = memberRepository;
 		this.memberPasswordRepository = memberPasswordRepository;
+		this.memberProfileRepository = memberProfileRepository;
 		this.passwordEncoder = passwordEncoder;
 	}
 
 	/**
-	 * member + member_password를 한 트랜잭션으로 저장한다. 어느 하나라도 실패하면 전체 롤백.
+	 * member + member_password + member_profile을 한 트랜잭션으로 저장한다.
+	 * 어느 하나라도 실패하면 전체 롤백.
 	 * 사전 중복 검사를 통과해도 동시 가입은 DB UNIQUE 제약으로 한 번 더 막는다 (WBS 06.02).
+	 *
+	 * @param verifiedEmailKey 이 요청의 세션에서 인증을 마친 이메일의 비교키 (없으면 null)
 	 */
 	@Transactional
-	public SignupResponse signup(SignupRequest request) {
+	public SignupResponse signup(SignupRequest request, String verifiedEmailKey) {
 		if (!request.password().equals(request.passwordConfirm())) {
 			throw new BusinessException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
+		}
+		if (verifiedEmailKey == null || !verifiedEmailKey.equals(MemberInputPolicy.emailKey(request.email()))) {
+			throw new BusinessException(ErrorCode.EMAIL_NOT_VERIFIED);
 		}
 
 		Member member = Member.create(request.loginName(), request.email(), request.nickname());
@@ -64,8 +75,11 @@ public class MemberService {
 
 		try {
 			Member saved = memberRepository.saveAndFlush(member);
+			Long memberId = saved.getId();
 			memberPasswordRepository.saveAndFlush(
-					new MemberPassword(saved.getId(), passwordEncoder.encode(request.password())));
+					new MemberPassword(memberId, passwordEncoder.encode(request.password())));
+			memberProfileRepository.saveAndFlush(
+					new MemberProfile(memberId, request.name(), request.birthDate(), request.gender()));
 			return SignupResponse.from(saved);
 		} catch (DataIntegrityViolationException e) {
 			throw toDuplicateException(e);

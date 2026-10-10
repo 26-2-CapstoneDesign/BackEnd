@@ -3,7 +3,9 @@ package com.youthguide.api.user.controller;
 import com.youthguide.api.user.dto.AvailabilityResponse;
 import com.youthguide.api.user.dto.SignupRequest;
 import com.youthguide.api.user.dto.SignupResponse;
+import com.youthguide.api.user.service.EmailVerificationService;
 import com.youthguide.api.user.service.MemberService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,16 +21,20 @@ import org.springframework.web.bind.annotation.RestController;
 public class MemberController {
 
 	private final MemberService memberService;
+	private final EmailVerificationService emailVerificationService;
 
-	public MemberController(MemberService memberService) {
+	public MemberController(MemberService memberService, EmailVerificationService emailVerificationService) {
 		this.memberService = memberService;
+		this.emailVerificationService = emailVerificationService;
 	}
 
 	/** MEM-01 회원가입. 성공 시 201. 로그인은 따로 해야 한다 (REG-10: 가입 후 로그인 화면으로 이동). */
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public SignupResponse signup(@Valid @RequestBody SignupRequest request) {
-		return memberService.signup(request);
+	public SignupResponse signup(@Valid @RequestBody SignupRequest request, HttpSession session) {
+		SignupResponse response = memberService.signup(request, emailVerificationService.findVerifiedEmailKey(session));
+		emailVerificationService.clear(session);
+		return response;
 	}
 
 	/**
