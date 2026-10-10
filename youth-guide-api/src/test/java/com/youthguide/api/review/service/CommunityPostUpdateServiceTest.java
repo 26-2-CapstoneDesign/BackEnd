@@ -1,6 +1,10 @@
 package com.youthguide.api.review.service;
 
+import com.youthguide.api.certificate.repository.CertificateRepository;
+import com.youthguide.api.global.exception.BusinessException;
+import com.youthguide.api.global.exception.ErrorCode;
 import com.youthguide.api.review.domain.CommunityPost;
+import com.youthguide.api.review.domain.CommunityPostKind;
 import com.youthguide.api.review.dto.CommunityPostUpdateRequest;
 import com.youthguide.api.review.repository.CommunityPostCommandRepository;
 import jakarta.persistence.Version;
@@ -20,6 +24,7 @@ import static com.youthguide.api.review.service.CommunityPostCommandService.Upda
 import static com.youthguide.api.review.service.CommunityPostCommandService.UpdateStatus.UPDATED;
 import static com.youthguide.api.review.service.CommunityPostCommandService.UpdateStatus.VERSION_CONFLICT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,10 +32,11 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CommunityPostUpdateServiceTest {
 
-    private static final String TEST_POST_KIND = "TEST_ONLY_POST_KIND";
-
     @Mock
     private CommunityPostCommandRepository repository;
+
+    @Mock
+    private CertificateRepository certificateRepository;
 
     @InjectMocks
     private CommunityPostCommandService service;
@@ -40,7 +46,9 @@ class CommunityPostUpdateServiceTest {
         CommunityPost post = existingPost(100L, 200L, 300L, 7L);
         LocalDateTime originalCreatedAt = field(post, "createdAt");
         LocalDateTime before = LocalDateTime.now(ZoneOffset.UTC);
-        when(repository.findByPostIdAndPostKind(300L, TEST_POST_KIND)).thenReturn(Optional.of(post));
+        when(repository.findByPostIdAndPostKind(300L, CommunityPostKind.EXAM_REVIEW))
+                .thenReturn(Optional.of(post));
+        when(certificateRepository.existsById(201L)).thenReturn(true);
         CommunityPostUpdateRequest request = new CommunityPostUpdateRequest(
                 "201",
                 "수정한 시험 후기",
@@ -51,7 +59,6 @@ class CommunityPostUpdateServiceTest {
         CommunityPostCommandService.UpdateResult result = service.updatePost(
                 300L,
                 100L,
-                TEST_POST_KIND,
                 request
         );
         LocalDateTime after = LocalDateTime.now(ZoneOffset.UTC);
@@ -67,7 +74,7 @@ class CommunityPostUpdateServiceTest {
         LocalDateTime updatedAt = field(post, "updatedAt");
         assertThat((LocalDateTime) ReflectionTestUtils.getField(post, "createdAt")).isEqualTo(originalCreatedAt);
         assertThat(updatedAt).isBetween(before, after);
-        verify(repository).findByPostIdAndPostKind(300L, TEST_POST_KIND);
+        verify(repository).findByPostIdAndPostKind(300L, CommunityPostKind.EXAM_REVIEW);
         verify(repository, never()).save(post);
     }
 
@@ -75,13 +82,13 @@ class CommunityPostUpdateServiceTest {
     void detectsVersionConflictWithoutChangingPost() {
         CommunityPost post = existingPost(100L, 200L, 300L, 7L);
         LocalDateTime originalUpdatedAt = field(post, "updatedAt");
-        when(repository.findByPostIdAndPostKind(300L, TEST_POST_KIND)).thenReturn(Optional.of(post));
+        when(repository.findByPostIdAndPostKind(300L, CommunityPostKind.EXAM_REVIEW))
+                .thenReturn(Optional.of(post));
         CommunityPostUpdateRequest request = new CommunityPostUpdateRequest("201", "수정 제목", "수정 본문", "6");
 
         CommunityPostCommandService.UpdateResult result = service.updatePost(
                 300L,
                 100L,
-                TEST_POST_KIND,
                 request
         );
 
@@ -104,13 +111,13 @@ class CommunityPostUpdateServiceTest {
 
     @Test
     void detectsMissingTargetWithoutThrowingCustomException() {
-        when(repository.findByPostIdAndPostKind(999L, TEST_POST_KIND)).thenReturn(Optional.empty());
+        when(repository.findByPostIdAndPostKind(999L, CommunityPostKind.EXAM_REVIEW))
+                .thenReturn(Optional.empty());
         CommunityPostUpdateRequest request = new CommunityPostUpdateRequest("201", "수정 제목", "수정 본문", "7");
 
         CommunityPostCommandService.UpdateResult result = service.updatePost(
                 999L,
                 100L,
-                TEST_POST_KIND,
                 request
         );
 
@@ -124,13 +131,13 @@ class CommunityPostUpdateServiceTest {
     void detectsAuthorMismatchWithoutChangingPost() {
         CommunityPost post = existingPost(100L, 200L, 300L, 7L);
         LocalDateTime originalUpdatedAt = field(post, "updatedAt");
-        when(repository.findByPostIdAndPostKind(300L, TEST_POST_KIND)).thenReturn(Optional.of(post));
+        when(repository.findByPostIdAndPostKind(300L, CommunityPostKind.EXAM_REVIEW))
+                .thenReturn(Optional.of(post));
         CommunityPostUpdateRequest request = new CommunityPostUpdateRequest("201", "수정 제목", "수정 본문", "6");
 
         CommunityPostCommandService.UpdateResult result = service.updatePost(
                 300L,
                 999L,
-                TEST_POST_KIND,
                 request
         );
 
@@ -144,11 +151,34 @@ class CommunityPostUpdateServiceTest {
         verify(repository, never()).save(post);
     }
 
+    @Test
+    void rejectsMissingCertificateWithoutChangingPost() {
+        CommunityPost post = existingPost(100L, 200L, 300L, 7L);
+        LocalDateTime originalUpdatedAt = field(post, "updatedAt");
+        when(repository.findByPostIdAndPostKind(300L, CommunityPostKind.EXAM_REVIEW))
+                .thenReturn(Optional.of(post));
+        when(certificateRepository.existsById(999L)).thenReturn(false);
+        CommunityPostUpdateRequest request = new CommunityPostUpdateRequest(
+                "999", "수정 제목", "수정 본문", "7"
+        );
+
+        assertThatThrownBy(() -> service.updatePost(300L, 100L, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).getErrorCode())
+                .isEqualTo(ErrorCode.CERTIFICATE_NOT_FOUND);
+
+        assertThat(ReflectionTestUtils.getField(post, "certificateId")).isEqualTo(200L);
+        assertThat(ReflectionTestUtils.getField(post, "title")).isEqualTo("기존 제목");
+        assertThat(ReflectionTestUtils.getField(post, "body")).isEqualTo("기존 본문");
+        assertThat((LocalDateTime) ReflectionTestUtils.getField(post, "updatedAt"))
+                .isEqualTo(originalUpdatedAt);
+    }
+
     private CommunityPost existingPost(Long authorMemberId, Long certificateId, Long postId, Long version) {
         CommunityPost post = CommunityPost.create(
                 authorMemberId,
                 certificateId,
-                TEST_POST_KIND,
+                CommunityPostKind.EXAM_REVIEW,
                 "기존 제목",
                 "기존 본문"
         );

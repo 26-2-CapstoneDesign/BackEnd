@@ -1,6 +1,10 @@
 package com.youthguide.api.review.service;
 
+import com.youthguide.api.certificate.repository.CertificateRepository;
+import com.youthguide.api.global.exception.BusinessException;
+import com.youthguide.api.global.exception.ErrorCode;
 import com.youthguide.api.review.domain.CommunityPost;
+import com.youthguide.api.review.domain.CommunityPostKind;
 import com.youthguide.api.review.dto.CommunityPostCreateRequest;
 import com.youthguide.api.review.dto.CommunityPostUpdateRequest;
 import com.youthguide.api.review.repository.CommunityPostCommandRepository;
@@ -12,17 +16,23 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommunityPostCommandService {
 
     private final CommunityPostCommandRepository repository;
+    private final CertificateRepository certificateRepository;
 
-    public CommunityPostCommandService(CommunityPostCommandRepository repository) {
+    public CommunityPostCommandService(
+            CommunityPostCommandRepository repository,
+            CertificateRepository certificateRepository
+    ) {
         this.repository = repository;
+        this.certificateRepository = certificateRepository;
     }
 
-    public Long createPost(Long authorMemberId, String postKind, CommunityPostCreateRequest request) {
+    public Long createPost(Long authorMemberId, CommunityPostCreateRequest request) {
         Long certificateId = Long.valueOf(request.certificateId());
+        validateCertificateExists(certificateId);
         CommunityPost post = CommunityPost.create(
                 authorMemberId,
                 certificateId,
-                postKind,
+                CommunityPostKind.EXAM_REVIEW,
                 request.title(),
                 request.body()
         );
@@ -33,11 +43,13 @@ public class CommunityPostCommandService {
     public UpdateResult updatePost(
             Long postId,
             Long authorMemberId,
-            String postKind,
             CommunityPostUpdateRequest request
     ) {
         Long requestedVersion = Long.valueOf(request.version());
-        CommunityPost post = repository.findByPostIdAndPostKind(postId, postKind).orElse(null);
+        CommunityPost post = repository.findByPostIdAndPostKind(
+                postId,
+                CommunityPostKind.EXAM_REVIEW
+        ).orElse(null);
         if (post == null) {
             return new UpdateResult(UpdateStatus.TARGET_NOT_FOUND, postId, requestedVersion, null);
         }
@@ -51,12 +63,20 @@ public class CommunityPostCommandService {
             return new UpdateResult(UpdateStatus.VERSION_CONFLICT, postId, requestedVersion, currentVersion);
         }
 
+        Long certificateId = Long.valueOf(request.certificateId());
+        validateCertificateExists(certificateId);
         post.updateContent(
-                Long.valueOf(request.certificateId()),
+                certificateId,
                 request.title(),
                 request.body()
         );
         return new UpdateResult(UpdateStatus.UPDATED, postId, requestedVersion, currentVersion);
+    }
+
+    private void validateCertificateExists(Long certificateId) {
+        if (!certificateRepository.existsById(certificateId)) {
+            throw new BusinessException(ErrorCode.CERTIFICATE_NOT_FOUND);
+        }
     }
 
     public enum UpdateStatus {
