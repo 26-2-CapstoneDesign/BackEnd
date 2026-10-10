@@ -1,5 +1,8 @@
 package com.youthguide.api.review.service;
 
+import com.youthguide.api.global.exception.BusinessException;
+import com.youthguide.api.global.exception.ErrorCode;
+import com.youthguide.api.review.domain.CommunityPostKind;
 import com.youthguide.api.review.dto.CommunityPostAuthorResponse;
 import com.youthguide.api.review.dto.CommunityPostDetailResponse;
 import com.youthguide.api.review.dto.CommunityPostPageResponse;
@@ -17,7 +20,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Transactional(readOnly = true)
@@ -29,10 +31,14 @@ public class CommunityPostQueryService {
         this.repository = repository;
     }
 
-    public CommunityPostPageResponse getPosts(String postKind, String q, int page, int size) {
+    public CommunityPostPageResponse getPosts(String q, int page, int size) {
         String qPattern = LikePatternEscaper.toContainsPattern(q);
         PageRequest pageRequest = PageRequest.of(page, size);
-        Page<CommunityPostSummaryProjection> result = repository.findPage(postKind, qPattern, pageRequest);
+        Page<CommunityPostSummaryProjection> result = repository.findPage(
+                CommunityPostKind.EXAM_REVIEW,
+                qPattern,
+                pageRequest
+        );
 
         List<CommunityPostSummaryResponse> items = result.getContent().stream()
                 .map(CommunityPostQueryService::toSummaryResponse)
@@ -48,9 +54,10 @@ public class CommunityPostQueryService {
         );
     }
 
-    public Optional<CommunityPostDetailResponse> getPost(String postKind, Long postId) {
-        return repository.findDetail(postId, postKind)
-                .map(CommunityPostQueryService::toDetailResponse);
+    public CommunityPostDetailResponse getPost(Long postId) {
+        return repository.findDetail(postId, CommunityPostKind.EXAM_REVIEW)
+                .map(CommunityPostQueryService::toDetailResponse)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
     }
 
     private static CommunityPostSummaryResponse toSummaryResponse(CommunityPostSummaryProjection projection) {

@@ -1,5 +1,8 @@
 package com.youthguide.api.review.service;
 
+import com.youthguide.api.global.exception.BusinessException;
+import com.youthguide.api.global.exception.ErrorCode;
+import com.youthguide.api.review.domain.CommunityPostKind;
 import com.youthguide.api.review.dto.CommunityPostDetailResponse;
 import com.youthguide.api.review.dto.CommunityPostPageResponse;
 import com.youthguide.api.review.dto.CommunityPostSummaryResponse;
@@ -22,13 +25,12 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CommunityPostQueryServiceTest {
-
-    private static final String TEST_POST_KIND = "TEST_ONLY_POST_KIND";
 
     @Mock
     private CommunityPostQueryRepository repository;
@@ -49,16 +51,14 @@ class CommunityPostQueryServiceTest {
                 createdAt.minusDays(1), updatedAt.minusDays(1), 0L, 0L
         );
         PageRequest expectedPageRequest = PageRequest.of(1, 2);
-        when(repository.findPage(TEST_POST_KIND, "%100\\%\\_C:\\\\temp%", expectedPageRequest))
+        when(repository.findPage(CommunityPostKind.EXAM_REVIEW, "%100\\%\\_C:\\\\temp%", expectedPageRequest))
                 .thenReturn(new PageImpl<>(List.of(first, second), expectedPageRequest, 5));
 
-        CommunityPostPageResponse response = service.getPosts(
-                TEST_POST_KIND, "100%_C:\\temp", 1, 2
-        );
+        CommunityPostPageResponse response = service.getPosts("100%_C:\\temp", 1, 2);
 
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findPage(
-                org.mockito.ArgumentMatchers.eq(TEST_POST_KIND),
+                org.mockito.ArgumentMatchers.eq(CommunityPostKind.EXAM_REVIEW),
                 org.mockito.ArgumentMatchers.eq("%100\\%\\_C:\\\\temp%"),
                 pageableCaptor.capture()
         );
@@ -89,15 +89,15 @@ class CommunityPostQueryServiceTest {
     @Test
     void convertsMissingSearchValuesToNullPattern() {
         PageRequest pageRequest = PageRequest.of(0, 20);
-        when(repository.findPage(TEST_POST_KIND, null, pageRequest))
+        when(repository.findPage(CommunityPostKind.EXAM_REVIEW, null, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(), pageRequest, 0));
 
-        service.getPosts(TEST_POST_KIND, null, 0, 20);
-        service.getPosts(TEST_POST_KIND, "", 0, 20);
-        service.getPosts(TEST_POST_KIND, "   ", 0, 20);
+        service.getPosts(null, 0, 20);
+        service.getPosts("", 0, 20);
+        service.getPosts("   ", 0, 20);
 
         verify(repository, org.mockito.Mockito.times(3))
-                .findPage(TEST_POST_KIND, null, pageRequest);
+                .findPage(CommunityPostKind.EXAM_REVIEW, null, pageRequest);
     }
 
     @Test
@@ -108,11 +108,11 @@ class CommunityPostQueryServiceTest {
                 timestamp, timestamp, 0L, 0L
         );
         PageRequest pageRequest = PageRequest.of(0, 20);
-        when(repository.findPage(TEST_POST_KIND, null, pageRequest))
+        when(repository.findPage(CommunityPostKind.EXAM_REVIEW, null, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(projection), pageRequest, 1));
 
         CommunityPostSummaryResponse response = service
-                .getPosts(TEST_POST_KIND, null, 0, 20)
+                .getPosts(null, 0, 20)
                 .items()
                 .getFirst();
 
@@ -138,32 +138,32 @@ class CommunityPostQueryServiceTest {
         when(projection.getLockVersion()).thenReturn(7L);
         when(projection.getViewCount()).thenReturn(20L);
         when(projection.getLikeCount()).thenReturn(4L);
-        when(repository.findDetail(101L, TEST_POST_KIND)).thenReturn(Optional.of(projection));
+        when(repository.findDetail(101L, CommunityPostKind.EXAM_REVIEW)).thenReturn(Optional.of(projection));
 
-        Optional<CommunityPostDetailResponse> result = service.getPost(TEST_POST_KIND, 101L);
+        CommunityPostDetailResponse response = service.getPost(101L);
 
-        assertThat(result).hasValueSatisfying(response -> {
-            assertThat(response.postId()).isEqualTo("101");
-            assertThat(response.certificateId()).isNull();
-            assertThat(response.certificateName()).isNull();
-            assertThat(response.title()).isEqualTo("상세 후기");
-            assertThat(response.body()).isEqualTo("상세 본문");
-            assertThat(response.author().nickname()).isEqualTo("작성자");
-            assertThat(response.createdAt()).isEqualTo(createdAt.toInstant(ZoneOffset.UTC));
-            assertThat(response.updatedAt()).isEqualTo(updatedAt.toInstant(ZoneOffset.UTC));
-            assertThat(response.version()).isEqualTo("7");
-            assertThat(response.viewCount()).isEqualTo(20L);
-            assertThat(response.likeCount()).isEqualTo(4L);
-        });
+        assertThat(response.postId()).isEqualTo("101");
+        assertThat(response.certificateId()).isNull();
+        assertThat(response.certificateName()).isNull();
+        assertThat(response.title()).isEqualTo("상세 후기");
+        assertThat(response.body()).isEqualTo("상세 본문");
+        assertThat(response.author().nickname()).isEqualTo("작성자");
+        assertThat(response.createdAt()).isEqualTo(createdAt.toInstant(ZoneOffset.UTC));
+        assertThat(response.updatedAt()).isEqualTo(updatedAt.toInstant(ZoneOffset.UTC));
+        assertThat(response.version()).isEqualTo("7");
+        assertThat(response.viewCount()).isEqualTo(20L);
+        assertThat(response.likeCount()).isEqualTo(4L);
     }
 
     @Test
-    void returnsEmptyWhenDetailDoesNotExist() {
-        when(repository.findDetail(999L, TEST_POST_KIND)).thenReturn(Optional.empty());
+    void throwsPostNotFoundWhenDetailDoesNotExist() {
+        when(repository.findDetail(999L, CommunityPostKind.EXAM_REVIEW))
+                .thenReturn(Optional.empty());
 
-        Optional<CommunityPostDetailResponse> result = service.getPost(TEST_POST_KIND, 999L);
-
-        assertThat(result).isEmpty();
+        assertThatThrownBy(() -> service.getPost(999L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).getErrorCode())
+                .isEqualTo(ErrorCode.POST_NOT_FOUND);
     }
 
     private CommunityPostSummaryProjection summaryProjection(

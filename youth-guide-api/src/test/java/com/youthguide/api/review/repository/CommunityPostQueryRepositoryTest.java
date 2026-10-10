@@ -38,7 +38,7 @@ class CommunityPostQueryRepositoryTest {
     }
 
     @Test
-    void detailQueryUsesParameterForUnconfirmedPostKind() throws NoSuchMethodException {
+    void detailQueryUsesBoundPostKindParameter() throws NoSuchMethodException {
         Method method = CommunityPostQueryRepository.class.getMethod(
                 "findDetail",
                 Long.class,
