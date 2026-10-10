@@ -1,16 +1,16 @@
 package com.youthguide.api.certificate.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "certificate")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Certificate {
 
     @Id
@@ -18,35 +18,24 @@ public class Certificate {
     @Column(name = "certificate_id")
     private Long id;
 
-    @Column(name = "display_name", nullable = false, length = 255)
+    @Column(name = "display_name", nullable = false)
     private String displayName;
 
     @Column(name = "created_at", insertable = false, updatable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at", insertable = false, updatable = false)
-    private Instant updatedAt;
+    private LocalDateTime updatedAt;
 
-    protected Certificate() {
+    public static Certificate of(String displayName) {
+        Certificate c = new Certificate();
+        c.displayName = displayName;
+        return c;
     }
 
-    public Certificate(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
+    public boolean rename(String newName) {
+        if (newName.equals(this.displayName)) return false;
+        this.displayName = newName;
+        return true;
     }
 }
