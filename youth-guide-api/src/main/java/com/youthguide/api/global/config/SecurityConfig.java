@@ -34,7 +34,7 @@ import java.util.List;
  *
  * <p>CSRF: 쿠키 인증이라 CSRF 보호를 켠다. 서버가 XSRF-TOKEN 쿠키를 내려주면
  * 프론트는 상태를 바꾸는 요청(POST/PUT/PATCH/DELETE)에 X-XSRF-TOKEN 헤더로 그 값을 보낸다.
- * 아직 로그인 전인 회원가입·로그인 요청은 예외로 둔다.
+ * 아직 로그인 전인 회원가입·이메일 인증·로그인 요청은 예외로 둔다.
  */
 @Configuration
 public class SecurityConfig {
@@ -49,7 +49,8 @@ public class SecurityConfig {
 		http
 				.csrf(csrf -> csrf
 						.spa()
-						.ignoringRequestMatchers("/api/v1/auth/login", "/api/v1/members"))
+						.ignoringRequestMatchers("/api/v1/auth/login", "/api/v1/members",
+								"/api/v1/members/email-verifications", "/api/v1/members/email-verifications/confirm"))
 				.addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
 				.cors(Customizer.withDefaults())
 				.formLogin(AbstractHttpConfigurer::disable)
@@ -65,7 +66,8 @@ public class SecurityConfig {
 						.authenticationEntryPoint(securityErrorResponder)
 						.accessDeniedHandler(securityErrorResponder))
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers(HttpMethod.POST, "/api/v1/members", "/api/v1/auth/login").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/members", "/api/v1/auth/login",
+								"/api/v1/members/email-verifications", "/api/v1/members/email-verifications/confirm").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/members/availability").permitAll()
 						.requestMatchers("/error").permitAll()
 						// 다른 기능(자격증 조회 등)의 공개 API는 담당자가 여기에 permitAll로 추가한다.
