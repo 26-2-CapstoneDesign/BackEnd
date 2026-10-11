@@ -8,6 +8,7 @@ import com.youthguide.api.global.security.LoginMember;
 import com.youthguide.api.global.security.MemberUserDetailsService;
 import com.youthguide.api.global.security.SecurityErrorResponder;
 import com.youthguide.api.review.dto.CommunityPostCreateRequest;
+import com.youthguide.api.review.dto.CommunityPostLikeResponse;
 import com.youthguide.api.review.dto.CommunityPostUpdateRequest;
 import com.youthguide.api.review.service.CommunityPostCommandService;
 import com.youthguide.api.review.service.CommunityPostCommandService.DeleteResult;
@@ -264,6 +265,84 @@ class CommunityPostCommandControllerTest {
                         .header("X-Expected-Post-Version", "7"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+    }
+
+    @Test
+    void addsAndRemovesLikeWithAuthenticatedMemberAndCsrf() throws Exception {
+        when(service.addLike(300L, 100L)).thenReturn(new CommunityPostLikeResponse(true, 3L));
+        when(service.removeLike(300L, 100L)).thenReturn(new CommunityPostLikeResponse(false, 2L));
+
+        mockMvc.perform(put("/api/v1/community/posts/300/likes/me")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.liked").value(true))
+                .andExpect(jsonPath("$.likeCount").value(3))
+                .andExpect(jsonPath("$.data").doesNotExist());
+
+        mockMvc.perform(delete("/api/v1/community/posts/300/likes/me")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.liked").value(false))
+                .andExpect(jsonPath("$.likeCount").value(2))
+                .andExpect(jsonPath("$.data").doesNotExist());
+
+        verify(service).addLike(300L, 100L);
+        verify(service).removeLike(300L, 100L);
+    }
+
+    @Test
+    void rejectsUnauthenticatedLikeCommands() throws Exception {
+        mockMvc.perform(put("/api/v1/community/posts/300/likes/me").with(csrf()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+
+        mockMvc.perform(delete("/api/v1/community/posts/300/likes/me").with(csrf()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void rejectsLikeCommandsWithoutCsrf() throws Exception {
+        mockMvc.perform(put("/api/v1/community/posts/300/likes/me")
+                        .with(user(LOGIN_MEMBER)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+
+        mockMvc.perform(delete("/api/v1/community/posts/300/likes/me")
+                        .with(user(LOGIN_MEMBER)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+    }
+
+    @Test
+    void mapsMissingLikeTargetToPostNotFound() throws Exception {
+        when(service.addLike(999L, 100L)).thenThrow(new BusinessException(ErrorCode.POST_NOT_FOUND));
+        when(service.removeLike(999L, 100L)).thenThrow(new BusinessException(ErrorCode.POST_NOT_FOUND));
+
+        mockMvc.perform(put("/api/v1/community/posts/999/likes/me")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
+
+        mockMvc.perform(delete("/api/v1/community/posts/999/likes/me")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
+    }
+
+    @Test
+    void rejectsMalformedLikePostIdAsInvalidInput() throws Exception {
+        mockMvc.perform(put("/api/v1/community/posts/not-a-number/likes/me")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+
+        verifyNoInteractions(service);
     }
 
     private void assertUpdateError(

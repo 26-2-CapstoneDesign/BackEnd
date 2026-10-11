@@ -33,6 +33,48 @@ class CommunityPostCommandRepositoryTest {
         assertNativeDelete("deletePostReportsByPostId", "community_post_report");
     }
 
+    @Test
+    void likeCommandsUseCompositeKeyParametersAndDatabaseCount() throws NoSuchMethodException {
+        Method exists = CommunityPostCommandRepository.class.getMethod(
+                "countPostLikeByPostIdAndMemberId", Long.class, Long.class
+        );
+        Query existsQuery = exists.getAnnotation(Query.class);
+        assertThat(existsQuery.nativeQuery()).isTrue();
+        assertThat(existsQuery.value())
+                .contains("FROM community_post_like")
+                .contains("post_id = :postId")
+                .contains("member_id = :memberId");
+
+        Method insert = CommunityPostCommandRepository.class.getMethod(
+                "insertPostLike", Long.class, Long.class
+        );
+        Query insertQuery = insert.getAnnotation(Query.class);
+        assertThat(insert.isAnnotationPresent(Modifying.class)).isTrue();
+        assertThat(insertQuery.nativeQuery()).isTrue();
+        assertThat(insertQuery.value())
+                .contains("INSERT INTO community_post_like (post_id, member_id)")
+                .contains("VALUES (:postId, :memberId)");
+
+        Method delete = CommunityPostCommandRepository.class.getMethod(
+                "deletePostLikeByPostIdAndMemberId", Long.class, Long.class
+        );
+        Query deleteQuery = delete.getAnnotation(Query.class);
+        assertThat(delete.isAnnotationPresent(Modifying.class)).isTrue();
+        assertThat(deleteQuery.nativeQuery()).isTrue();
+        assertThat(deleteQuery.value())
+                .contains("DELETE FROM community_post_like")
+                .contains("post_id = :postId")
+                .contains("member_id = :memberId");
+
+        Method count = CommunityPostCommandRepository.class.getMethod("countPostLikesByPostId", Long.class);
+        Query countQuery = count.getAnnotation(Query.class);
+        assertThat(countQuery.nativeQuery()).isTrue();
+        assertThat(countQuery.value())
+                .contains("SELECT COUNT(*)")
+                .contains("FROM community_post_like")
+                .contains("post_id = :postId");
+    }
+
     private void assertNativeDelete(String methodName, String tableName) throws NoSuchMethodException {
         Method method = CommunityPostCommandRepository.class.getMethod(methodName, Long.class);
         Query query = method.getAnnotation(Query.class);

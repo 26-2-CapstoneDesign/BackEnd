@@ -6,6 +6,7 @@ import com.youthguide.api.global.exception.ErrorCode;
 import com.youthguide.api.review.domain.CommunityPost;
 import com.youthguide.api.review.domain.CommunityPostKind;
 import com.youthguide.api.review.dto.CommunityPostCreateRequest;
+import com.youthguide.api.review.dto.CommunityPostLikeResponse;
 import com.youthguide.api.review.dto.CommunityPostUpdateRequest;
 import com.youthguide.api.review.repository.CommunityPostCommandRepository;
 import org.springframework.stereotype.Service;
@@ -96,6 +97,27 @@ public class CommunityPostCommandService {
         repository.deletePostReportsByPostId(postId);
         repository.delete(post);
         return new DeleteResult(DeleteStatus.DELETED, postId, expectedVersion, currentVersion);
+    }
+
+    public CommunityPostLikeResponse addLike(Long postId, Long memberId) {
+        lockExamReviewPost(postId);
+        if (repository.countPostLikeByPostIdAndMemberId(postId, memberId) == 0L) {
+            repository.insertPostLike(postId, memberId);
+        }
+        return new CommunityPostLikeResponse(true, repository.countPostLikesByPostId(postId));
+    }
+
+    public CommunityPostLikeResponse removeLike(Long postId, Long memberId) {
+        lockExamReviewPost(postId);
+        if (repository.countPostLikeByPostIdAndMemberId(postId, memberId) > 0L) {
+            repository.deletePostLikeByPostIdAndMemberId(postId, memberId);
+        }
+        return new CommunityPostLikeResponse(false, repository.countPostLikesByPostId(postId));
+    }
+
+    private void lockExamReviewPost(Long postId) {
+        repository.findForUpdateByPostIdAndPostKind(postId, CommunityPostKind.EXAM_REVIEW)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
     }
 
     private void validateCertificateExists(Long certificateId) {

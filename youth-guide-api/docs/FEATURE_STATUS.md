@@ -63,6 +63,23 @@ features:
     source_revision: e98535c94077a48c7ecb9401ecb1e9d32745b0c4
     updated_at: '2026-10-10T17:03:27Z'
     missing_reasons: {}
+  - feature_id: WBS-10-03-REVIEW-LIKE
+    name: 시험후기 좋아요 API
+    human_owner: current_user
+    actor_id: codex
+    implementation_status: IMPLEMENTED
+    work_status: IN_REVIEW
+    acceptance_passed: 10
+    acceptance_total: 10
+    verification_status: PARTIAL
+    review_status: PENDING
+    integration_status: BRANCH_ONLY
+    deployment_status: NOT_APPLICABLE
+    feature_file: docs/features/WBS-10-03-REVIEW-LIKE.md
+    latest_worklog: docs/worklogs/WBS-10-03-REVIEW-LIKE__codex__20261011T125740Z.md
+    source_revision: d8132f4eaba2bb7473757fa4f528358b77ddb035 (+ 미커밋 10.03 변경)
+    updated_at: '2026-10-11T13:03:00Z'
+    missing_reasons: {}
 ```
 새 항목: 아래 필드를 feature_file에서 복사한다. 기억에 의존해 실제 상태를 다시 만들어 넣지 않는다.
 ```yaml
