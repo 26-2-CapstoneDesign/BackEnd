@@ -11,7 +11,24 @@ schema_version: 3.1.0
 template: false
 record_type: feature_index
 inventory_status: UNVERIFIED
-features: []
+features:
+  - feature_id: WBS-09-01-REVIEW-QUERY
+    name: 시험후기 목록·검색·상세 조회 API
+    human_owner: current_user
+    actor_id: codex
+    implementation_status: IMPLEMENTED
+    work_status: WAITING_APPROVAL
+    acceptance_passed: 9
+    acceptance_total: 9
+    verification_status: PARTIAL
+    review_status: PENDING
+    integration_status: BRANCH_ONLY
+    deployment_status: NOT_DEPLOYED
+    feature_file: docs/features/WBS-09-01-REVIEW-QUERY.md
+    latest_worklog: docs/worklogs/WBS-09-01-PUBLIC-QUERY__codex__20261010T160825Z.md
+    source_revision: 6b0001dc501529ebe0cce9deb842fb3e6d60d276 (+ 미커밋 09.01 PR 리뷰 변경)
+    updated_at: '2026-10-10T16:12:16Z'
+    missing_reasons: {}
 ```
 새 항목: 아래 필드를 feature_file에서 복사한다. 기억에 의존해 실제 상태를 다시 만들어 넣지 않는다.
 ```yaml

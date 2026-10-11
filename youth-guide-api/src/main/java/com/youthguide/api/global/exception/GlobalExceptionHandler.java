@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.util.List;
 
@@ -35,7 +36,11 @@ public class GlobalExceptionHandler {
 				.body(ErrorResponse.of(ErrorCode.INVALID_INPUT, fieldErrors));
 	}
 
-	@ExceptionHandler({HttpMessageNotReadableException.class, MissingServletRequestParameterException.class})
+	@ExceptionHandler({
+			HttpMessageNotReadableException.class,
+			MissingServletRequestParameterException.class,
+			HandlerMethodValidationException.class
+	})
 	public ResponseEntity<ErrorResponse> handleBadRequest(Exception e) {
 		return toResponse(ErrorCode.INVALID_INPUT);
 	}
