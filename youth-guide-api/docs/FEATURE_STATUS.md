@@ -29,6 +29,23 @@ features:
     source_revision: 6b0001dc501529ebe0cce9deb842fb3e6d60d276 (+ 미커밋 09.01 PR 리뷰 변경)
     updated_at: '2026-10-10T16:12:16Z'
     missing_reasons: {}
+  - feature_id: WBS-09-02-VERSION-CONFLICT
+    name: 시험후기 작성·수정·버전 충돌 API
+    human_owner: current_user
+    actor_id: codex
+    implementation_status: IMPLEMENTED
+    work_status: IN_REVIEW
+    acceptance_passed: 15
+    acceptance_total: 15
+    verification_status: PASSED
+    review_status: PENDING
+    integration_status: BRANCH_ONLY
+    deployment_status: NOT_APPLICABLE
+    feature_file: docs/features/WBS-09-02-VERSION-CONFLICT.md
+    latest_worklog: docs/worklogs/WBS-09-02-REVIEW-WRITE-UPDATE__codex__20261010T113839Z.md
+    source_revision: 96fb9e68141fe8c59b0a94266abd95dc929d8109
+    updated_at: '2026-10-10T11:48:29Z'
+    missing_reasons: {}
 ```
 새 항목: 아래 필드를 feature_file에서 복사한다. 기억에 의존해 실제 상태를 다시 만들어 넣지 않는다.
 ```yaml
