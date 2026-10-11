@@ -17,17 +17,17 @@ features:
     human_owner: current_user
     actor_id: codex
     implementation_status: IMPLEMENTED
-    work_status: IN_REVIEW
-    acceptance_passed: 7
-    acceptance_total: 7
+    work_status: WAITING_APPROVAL
+    acceptance_passed: 9
+    acceptance_total: 9
     verification_status: PARTIAL
     review_status: PENDING
     integration_status: BRANCH_ONLY
     deployment_status: NOT_DEPLOYED
     feature_file: docs/features/WBS-09-01-REVIEW-QUERY.md
-    latest_worklog: docs/worklogs/WBS-09-01-REVIEW-QUERY__codex__20261010T101546Z.md
-    source_revision: 9471bc2f288e8ce344348ee5b61d8233fa584c78
-    updated_at: '2026-10-10T10:20:57Z'
+    latest_worklog: docs/worklogs/WBS-09-01-PUBLIC-QUERY__codex__20261010T160825Z.md
+    source_revision: 6b0001dc501529ebe0cce9deb842fb3e6d60d276 (+ 미커밋 09.01 PR 리뷰 변경)
+    updated_at: '2026-10-10T16:12:16Z'
     missing_reasons: {}
   - feature_id: WBS-09-02-VERSION-CONFLICT
     name: 시험후기 작성·수정·버전 충돌 API
