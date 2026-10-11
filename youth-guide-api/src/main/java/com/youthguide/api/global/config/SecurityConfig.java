@@ -34,7 +34,7 @@ import java.util.List;
  *
  * <p>CSRF: 쿠키 인증이라 CSRF 보호를 켠다. 서버가 XSRF-TOKEN 쿠키를 내려주면
  * 프론트는 상태를 바꾸는 요청(POST/PUT/PATCH/DELETE)에 X-XSRF-TOKEN 헤더로 그 값을 보낸다.
- * 아직 로그인 전인 회원가입·로그인 요청은 예외로 둔다.
+ * 아직 로그인 전인 회원가입·이메일 인증·로그인 요청은 예외로 둔다.
  */
 @Configuration
 public class SecurityConfig {
@@ -50,7 +50,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .spa()
                         // 개발용 동기화(/api/v1/dev/**)는 curl로 호출하므로 CSRF 예외 (배포 전 제거)
-                        .ignoringRequestMatchers("/api/v1/auth/login", "/api/v1/members", "/api/v1/dev/**"))
+                        .ignoringRequestMatchers("/api/v1/auth/login", "/api/v1/members",
+                                "/api/v1/members/email-verifications", "/api/v1/members/email-verifications/confirm",
+                                "/api/v1/dev/**"))
                 .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
                 .cors(Customizer.withDefaults())
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -66,13 +68,18 @@ public class SecurityConfig {
                         .authenticationEntryPoint(securityErrorResponder)
                         .accessDeniedHandler(securityErrorResponder))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/v1/members", "/api/v1/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/members", "/api/v1/auth/login",
+                                "/api/v1/members/email-verifications", "/api/v1/members/email-verifications/confirm").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/members/availability").permitAll()
                         .requestMatchers("/error").permitAll()
                         // 자격증 목록·검색·상세 (공개)
                         .requestMatchers(HttpMethod.GET, "/api/v1/certificates/**").permitAll()
+                        // 시험후기 목록·검색·상세 (공개). 단일 하위 경로만 허용해 다른 community GET은 보호한다.
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/community/posts", "/api/v1/community/posts/*").permitAll()
                         // 개발용 Q-Net 동기화·확인 (배포 전 제거 또는 관리자 권한)
                         .requestMatchers("/api/v1/dev/**").permitAll()
+                        // 다른 기능의 공개 API는 담당자가 여기에 permitAll로 추가한다.
                         .anyRequest().authenticated());
         return http.build();
     }
