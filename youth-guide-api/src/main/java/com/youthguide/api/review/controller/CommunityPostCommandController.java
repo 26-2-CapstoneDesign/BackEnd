@@ -5,6 +5,7 @@ import com.youthguide.api.global.exception.ErrorCode;
 import com.youthguide.api.global.security.LoginMember;
 import com.youthguide.api.review.dto.CommunityPostCommandResponse;
 import com.youthguide.api.review.dto.CommunityPostCreateRequest;
+import com.youthguide.api.review.dto.CommunityPostLikeResponse;
 import com.youthguide.api.review.dto.CommunityPostUpdateRequest;
 import com.youthguide.api.review.service.CommunityPostCommandService;
 import com.youthguide.api.review.service.CommunityPostCommandService.DeleteResult;
@@ -83,5 +84,21 @@ public class CommunityPostCommandController {
             case AUTHOR_MISMATCH -> throw new BusinessException(ErrorCode.ACCESS_DENIED);
             case VERSION_CONFLICT -> throw new BusinessException(ErrorCode.VERSION_CONFLICT);
         }
+    }
+
+    @PutMapping("/{postId}/likes/me")
+    public CommunityPostLikeResponse addMyLike(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal LoginMember loginMember
+    ) {
+        return communityPostCommandService.addLike(postId, loginMember.getMemberId());
+    }
+
+    @DeleteMapping("/{postId}/likes/me")
+    public CommunityPostLikeResponse removeMyLike(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal LoginMember loginMember
+    ) {
+        return communityPostCommandService.removeLike(postId, loginMember.getMemberId());
     }
 }

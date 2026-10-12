@@ -28,6 +28,45 @@ public interface CommunityPostCommandRepository extends Repository<CommunityPost
             @Param("postKind") String postKind
     );
 
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM community_post_like
+            WHERE post_id = :postId
+              AND member_id = :memberId
+            """, nativeQuery = true)
+    long countPostLikeByPostIdAndMemberId(
+            @Param("postId") Long postId,
+            @Param("memberId") Long memberId
+    );
+
+    @Modifying
+    @Query(value = """
+            INSERT INTO community_post_like (post_id, member_id)
+            VALUES (:postId, :memberId)
+            """, nativeQuery = true)
+    int insertPostLike(
+            @Param("postId") Long postId,
+            @Param("memberId") Long memberId
+    );
+
+    @Modifying
+    @Query(value = """
+            DELETE FROM community_post_like
+            WHERE post_id = :postId
+              AND member_id = :memberId
+            """, nativeQuery = true)
+    int deletePostLikeByPostIdAndMemberId(
+            @Param("postId") Long postId,
+            @Param("memberId") Long memberId
+    );
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM community_post_like
+            WHERE post_id = :postId
+            """, nativeQuery = true)
+    long countPostLikesByPostId(@Param("postId") Long postId);
+
     @Modifying
     @Query(value = "DELETE FROM community_post_like WHERE post_id = :postId", nativeQuery = true)
     int deletePostLikesByPostId(@Param("postId") Long postId);
