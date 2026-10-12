@@ -23,5 +23,6 @@ active_tasks:
   - {task_id: TASK-DOC-003, kind: DOCS, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/DECISIONS.md, AI_COLLABORATION_DESIGN.md], latest_worklog: docs/worklogs/TASK-DOC-003__codex__20260920T082615Z.md, next_action: 한국어 기록 형식과 포트폴리오 내용을 사용자 검토 후 활용한다.}
   - {task_id: WBS-09-01-REVIEW-QUERY, kind: FEATURE, actor_id: codex, work_status: WAITING_APPROVAL, review_status: PENDING, required_files: [docs/features/WBS-09-01-REVIEW-QUERY.md], latest_worklog: docs/worklogs/WBS-09-01-PUBLIC-QUERY__codex__20261010T160825Z.md, next_action: 사용자가 커밋 대상과 메시지를 승인하면 09.01 PR 리뷰 대응 커밋을 생성한다. develop 병합은 별도 승인 전까지 대기한다.}
   - {task_id: WBS-09-02-REVIEW-WRITE-UPDATE, kind: FEATURE, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/features/WBS-09-02-VERSION-CONFLICT.md], latest_worklog: docs/worklogs/WBS-09-02-REVIEW-WRITE-UPDATE__codex__20261010T113839Z.md, next_action: 사용자 검토 후 필요하면 실제 MySQL 동시 수정 경쟁을 검증한다.}
+  - {task_id: WBS-09-03-REVIEW-DELETE, kind: FEATURE, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/features/WBS-09-03-REVIEW-DELETE.md], latest_worklog: docs/worklogs/WBS-09-03-REVIEW-DELETE__codex__20261010T165857Z.md, next_action: 사용자 검토 후 격리 DB 실제 쓰기 통합 검증 필요 여부를 결정한다.}
 updated_at: '2026-10-11T03:18:19Z'
 ```
