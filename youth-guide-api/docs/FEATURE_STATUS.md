@@ -80,6 +80,23 @@ features:
     source_revision: d8132f4eaba2bb7473757fa4f528358b77ddb035 (+ 미커밋 10.03 변경)
     updated_at: '2026-10-11T13:03:00Z'
     missing_reasons: {}
+  - feature_id: WBS-12-04-REVIEW-COMMENT
+    name: 시험후기 댓글 작성·조회·수정·삭제
+    human_owner: current_user
+    actor_id: codex
+    implementation_status: IMPLEMENTED
+    work_status: IN_REVIEW
+    acceptance_passed: 14
+    acceptance_total: 14
+    verification_status: PARTIAL
+    review_status: PENDING
+    integration_status: BRANCH_ONLY
+    deployment_status: NOT_DEPLOYED
+    feature_file: docs/features/WBS-12-04-REVIEW-COMMENT.md
+    latest_worklog: docs/worklogs/WBS-12-04-REVIEW-COMMENT__codex__20261012T134019Z.md
+    source_revision: 790bfd159bf8a646ee801d081598e8dfceb48f24 (+ 미커밋 12.04 변경)
+    updated_at: '2026-10-15T01:52:14Z'
+    missing_reasons: {}
 ```
 새 항목: 아래 필드를 feature_file에서 복사한다. 기억에 의존해 실제 상태를 다시 만들어 넣지 않는다.
 ```yaml

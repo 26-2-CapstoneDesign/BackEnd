@@ -31,6 +31,17 @@ class CommunityPostCommandRepositoryTest {
         assertNativeDelete("deletePostLikesByPostId", "community_post_like");
         assertNativeDelete("deletePostMetricByPostId", "community_post_metric");
         assertNativeDelete("deletePostReportsByPostId", "community_post_report");
+        assertNativeDelete("deletePostRepliesByPostId", "community_post_comment");
+        assertNativeDelete("deletePostCommentsByPostId", "community_post_comment");
+
+        Query replies = CommunityPostCommandRepository.class
+                .getMethod("deletePostRepliesByPostId", Long.class)
+                .getAnnotation(Query.class);
+        Query topLevel = CommunityPostCommandRepository.class
+                .getMethod("deletePostCommentsByPostId", Long.class)
+                .getAnnotation(Query.class);
+        assertThat(replies.value()).contains("parent_comment_id IS NOT NULL");
+        assertThat(topLevel.value()).contains("parent_comment_id IS NULL");
     }
 
     @Test

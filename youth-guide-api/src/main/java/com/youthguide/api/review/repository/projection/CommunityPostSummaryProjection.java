@@ -21,4 +21,6 @@ public interface CommunityPostSummaryProjection {
     Long getViewCount();
 
     Long getLikeCount();
+
+    Long getCommentCount();
 }

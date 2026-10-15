@@ -52,7 +52,8 @@ class CommunityPostQueryControllerTest {
                 Instant.parse("2026-10-10T01:02:03Z"),
                 Instant.parse("2026-10-10T01:02:03Z"),
                 12L,
-                3L
+                3L,
+                4L
         );
         CommunityPostPageResponse response = new CommunityPostPageResponse(
                 List.of(item), 2, 5, 11L, 3, false
@@ -66,6 +67,7 @@ class CommunityPostQueryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].postId").value("101"))
                 .andExpect(jsonPath("$.items[0].author.nickname").value("작성자"))
+                .andExpect(jsonPath("$.items[0].commentCount").value(4))
                 .andExpect(jsonPath("$.page").value(2))
                 .andExpect(jsonPath("$.size").value(5))
                 .andExpect(jsonPath("$.totalElements").value(11))
@@ -126,7 +128,8 @@ class CommunityPostQueryControllerTest {
                 "상세 본문",
                 "7",
                 12L,
-                3L
+                3L,
+                4L
         );
         when(service.getPost(101L)).thenReturn(response);
 
@@ -136,6 +139,7 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.certificateName").value("정보처리기사"))
                 .andExpect(jsonPath("$.body").value("상세 본문"))
                 .andExpect(jsonPath("$.version").value("7"))
+                .andExpect(jsonPath("$.commentCount").value(4))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(service).getPost(101L);

@@ -44,6 +44,8 @@ class CommunityPostDeleteServiceTest {
         CommunityPost post = existingPost(100L, 300L, 7L);
         when(repository.findForUpdateByPostIdAndPostKind(300L, CommunityPostKind.EXAM_REVIEW))
                 .thenReturn(Optional.of(post));
+        when(repository.deletePostRepliesByPostId(300L)).thenReturn(2);
+        when(repository.deletePostCommentsByPostId(300L)).thenReturn(1);
         when(repository.deletePostLikesByPostId(300L)).thenReturn(2);
         when(repository.deletePostMetricByPostId(300L)).thenReturn(1);
         when(repository.deletePostReportsByPostId(300L)).thenReturn(3);
@@ -56,6 +58,8 @@ class CommunityPostDeleteServiceTest {
         assertThat(result.currentVersion()).isEqualTo(7L);
         InOrder order = inOrder(repository);
         order.verify(repository).findForUpdateByPostIdAndPostKind(300L, CommunityPostKind.EXAM_REVIEW);
+        order.verify(repository).deletePostRepliesByPostId(300L);
+        order.verify(repository).deletePostCommentsByPostId(300L);
         order.verify(repository).deletePostLikesByPostId(300L);
         order.verify(repository).deletePostMetricByPostId(300L);
         order.verify(repository).deletePostReportsByPostId(300L);
@@ -72,6 +76,8 @@ class CommunityPostDeleteServiceTest {
         CommunityPostCommandService.DeleteResult result = service.deletePost(300L, 100L, 7L);
 
         assertThat(result.status()).isEqualTo(DELETED);
+        verify(repository).deletePostRepliesByPostId(300L);
+        verify(repository).deletePostCommentsByPostId(300L);
         verify(repository).deletePostLikesByPostId(300L);
         verify(repository).deletePostMetricByPostId(300L);
         verify(repository).deletePostReportsByPostId(300L);
@@ -87,6 +93,8 @@ class CommunityPostDeleteServiceTest {
 
         assertThat(result.status()).isEqualTo(TARGET_NOT_FOUND);
         assertThat(result.currentVersion()).isNull();
+        verify(repository, never()).deletePostRepliesByPostId(999L);
+        verify(repository, never()).deletePostCommentsByPostId(999L);
         verify(repository, never()).deletePostLikesByPostId(999L);
         verify(repository, never()).deletePostMetricByPostId(999L);
         verify(repository, never()).deletePostReportsByPostId(999L);
@@ -102,6 +110,8 @@ class CommunityPostDeleteServiceTest {
 
         assertThat(result.status()).isEqualTo(AUTHOR_MISMATCH);
         assertThat(result.currentVersion()).isEqualTo(7L);
+        verify(repository, never()).deletePostRepliesByPostId(300L);
+        verify(repository, never()).deletePostCommentsByPostId(300L);
         verify(repository, never()).deletePostLikesByPostId(300L);
         verify(repository, never()).deletePostMetricByPostId(300L);
         verify(repository, never()).deletePostReportsByPostId(300L);
@@ -119,6 +129,8 @@ class CommunityPostDeleteServiceTest {
         assertThat(result.status()).isEqualTo(VERSION_CONFLICT);
         assertThat(result.expectedVersion()).isEqualTo(6L);
         assertThat(result.currentVersion()).isEqualTo(7L);
+        verify(repository, never()).deletePostRepliesByPostId(300L);
+        verify(repository, never()).deletePostCommentsByPostId(300L);
         verify(repository, never()).deletePostLikesByPostId(300L);
         verify(repository, never()).deletePostMetricByPostId(300L);
         verify(repository, never()).deletePostReportsByPostId(300L);
@@ -137,6 +149,8 @@ class CommunityPostDeleteServiceTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("forced relation delete failure");
 
+        verify(repository).deletePostRepliesByPostId(300L);
+        verify(repository).deletePostCommentsByPostId(300L);
         verify(repository).deletePostLikesByPostId(300L);
         verify(repository).deletePostMetricByPostId(300L);
         verify(repository, never()).delete(post);

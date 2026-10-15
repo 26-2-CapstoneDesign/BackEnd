@@ -44,11 +44,11 @@ class CommunityPostQueryServiceTest {
         LocalDateTime updatedAt = LocalDateTime.of(2026, 10, 11, 4, 5, 6);
         CommunityPostSummaryProjection first = summaryProjection(
                 101L, 201L, "정보처리기사", "첫 번째 후기", "작성자",
-                createdAt, updatedAt, 12L, 3L
+                createdAt, updatedAt, 12L, 3L, 4L
         );
         CommunityPostSummaryProjection second = summaryProjection(
                 100L, 202L, "정보처리산업기사", "두 번째 후기", "다른 작성자",
-                createdAt.minusDays(1), updatedAt.minusDays(1), 0L, 0L
+                createdAt.minusDays(1), updatedAt.minusDays(1), 0L, 0L, 1L
         );
         PageRequest expectedPageRequest = PageRequest.of(1, 2);
         when(repository.findPage(CommunityPostKind.EXAM_REVIEW, "%100\\%\\_C:\\\\temp%", expectedPageRequest))
@@ -84,6 +84,7 @@ class CommunityPostQueryServiceTest {
         assertThat(item.updatedAt()).isEqualTo(updatedAt.toInstant(ZoneOffset.UTC));
         assertThat(item.viewCount()).isEqualTo(12L);
         assertThat(item.likeCount()).isEqualTo(3L);
+        assertThat(item.commentCount()).isEqualTo(4L);
     }
 
     @Test
@@ -105,7 +106,7 @@ class CommunityPostQueryServiceTest {
         LocalDateTime timestamp = LocalDateTime.of(2026, 10, 10, 1, 2, 3);
         CommunityPostSummaryProjection projection = summaryProjection(
                 101L, null, null, "자격증 없는 글", "작성자",
-                timestamp, timestamp, 0L, 0L
+                timestamp, timestamp, 0L, 0L, 0L
         );
         PageRequest pageRequest = PageRequest.of(0, 20);
         when(repository.findPage(CommunityPostKind.EXAM_REVIEW, null, pageRequest))
@@ -120,6 +121,7 @@ class CommunityPostQueryServiceTest {
         assertThat(response.certificateName()).isNull();
         assertThat(response.viewCount()).isZero();
         assertThat(response.likeCount()).isZero();
+        assertThat(response.commentCount()).isZero();
     }
 
     @Test
@@ -138,6 +140,7 @@ class CommunityPostQueryServiceTest {
         when(projection.getLockVersion()).thenReturn(7L);
         when(projection.getViewCount()).thenReturn(20L);
         when(projection.getLikeCount()).thenReturn(4L);
+        when(projection.getCommentCount()).thenReturn(5L);
         when(repository.findDetail(101L, CommunityPostKind.EXAM_REVIEW)).thenReturn(Optional.of(projection));
 
         CommunityPostDetailResponse response = service.getPost(101L);
@@ -153,6 +156,7 @@ class CommunityPostQueryServiceTest {
         assertThat(response.version()).isEqualTo("7");
         assertThat(response.viewCount()).isEqualTo(20L);
         assertThat(response.likeCount()).isEqualTo(4L);
+        assertThat(response.commentCount()).isEqualTo(5L);
     }
 
     @Test
@@ -175,7 +179,8 @@ class CommunityPostQueryServiceTest {
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
             Long viewCount,
-            Long likeCount
+            Long likeCount,
+            Long commentCount
     ) {
         CommunityPostSummaryProjection projection = org.mockito.Mockito.mock(CommunityPostSummaryProjection.class);
         when(projection.getPostId()).thenReturn(postId);
@@ -187,6 +192,7 @@ class CommunityPostQueryServiceTest {
         when(projection.getUpdatedAt()).thenReturn(updatedAt);
         when(projection.getViewCount()).thenReturn(viewCount);
         when(projection.getLikeCount()).thenReturn(likeCount);
+        when(projection.getCommentCount()).thenReturn(commentCount);
         return projection;
     }
 }

@@ -76,7 +76,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/certificates/**").permitAll()
                         // 시험후기 목록·검색·상세 (공개). 단일 하위 경로만 허용해 다른 community GET은 보호한다.
                         .requestMatchers(HttpMethod.GET,
-                                "/api/v1/community/posts", "/api/v1/community/posts/*").permitAll()
+                                "/api/v1/community/posts", "/api/v1/community/posts/*",
+                                "/api/v1/community/posts/*/comments").permitAll()
                         // 개발용 Q-Net 동기화·확인 (배포 전 제거 또는 관리자 권한)
                         .requestMatchers("/api/v1/dev/**").permitAll()
                         // 다른 기능의 공개 API는 담당자가 여기에 permitAll로 추가한다.

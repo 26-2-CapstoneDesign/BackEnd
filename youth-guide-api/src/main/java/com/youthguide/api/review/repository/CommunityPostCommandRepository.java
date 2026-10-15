@@ -79,5 +79,21 @@ public interface CommunityPostCommandRepository extends Repository<CommunityPost
     @Query(value = "DELETE FROM community_post_report WHERE post_id = :postId", nativeQuery = true)
     int deletePostReportsByPostId(@Param("postId") Long postId);
 
+    @Modifying
+    @Query(value = """
+            DELETE FROM community_post_comment
+            WHERE post_id = :postId
+              AND parent_comment_id IS NOT NULL
+            """, nativeQuery = true)
+    int deletePostRepliesByPostId(@Param("postId") Long postId);
+
+    @Modifying
+    @Query(value = """
+            DELETE FROM community_post_comment
+            WHERE post_id = :postId
+              AND parent_comment_id IS NULL
+            """, nativeQuery = true)
+    int deletePostCommentsByPostId(@Param("postId") Long postId);
+
     void delete(CommunityPost post);
 }

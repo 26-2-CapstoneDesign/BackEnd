@@ -25,5 +25,6 @@ active_tasks:
   - {task_id: WBS-09-02-REVIEW-WRITE-UPDATE, kind: FEATURE, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/features/WBS-09-02-VERSION-CONFLICT.md], latest_worklog: docs/worklogs/WBS-09-02-REVIEW-WRITE-UPDATE__codex__20261010T113839Z.md, next_action: 사용자 검토 후 필요하면 실제 MySQL 동시 수정 경쟁을 검증한다.}
   - {task_id: WBS-09-03-REVIEW-DELETE, kind: FEATURE, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/features/WBS-09-03-REVIEW-DELETE.md], latest_worklog: docs/worklogs/WBS-09-03-REVIEW-DELETE__codex__20261010T165857Z.md, next_action: 사용자 검토 후 격리 DB 실제 쓰기 통합 검증 필요 여부를 결정한다.}
   - {task_id: WBS-10-03-REVIEW-LIKE, kind: FEATURE, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/features/WBS-10-03-REVIEW-LIKE.md], latest_worklog: docs/worklogs/WBS-10-03-REVIEW-LIKE__codex__20261011T125740Z.md, next_action: 사용자 검토 후 격리된 MySQL 실제 쓰기 통합 검증 필요 여부를 결정한다.}
-updated_at: '2026-10-11T13:03:00Z'
+  - {task_id: WBS-12-04-REVIEW-COMMENT, kind: FEATURE, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/features/WBS-12-04-REVIEW-COMMENT.md], latest_worklog: docs/worklogs/WBS-12-04-REVIEW-COMMENT__codex__20261012T134019Z.md, next_action: 사용자 코드 검토 후 로컬 또는 격리된 MySQL에서 baseline 0과 V1 migration을 검증한다.}
+updated_at: '2026-10-15T01:52:14Z'
 ```
