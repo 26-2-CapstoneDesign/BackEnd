@@ -68,6 +68,21 @@ public interface CommunityPostCommandRepository extends Repository<CommunityPost
     long countPostLikesByPostId(@Param("postId") Long postId);
 
     @Modifying
+    @Query(value = """
+            INSERT INTO community_post_metric (post_id, view_count)
+            SELECT p.post_id, 1
+            FROM community_post p
+            WHERE p.post_id = :postId
+              AND p.post_kind = :postKind
+            ON DUPLICATE KEY UPDATE
+                view_count = view_count + 1
+            """, nativeQuery = true)
+    int incrementPostViewCount(
+            @Param("postId") Long postId,
+            @Param("postKind") String postKind
+    );
+
+    @Modifying
     @Query(value = "DELETE FROM community_post_like WHERE post_id = :postId", nativeQuery = true)
     int deletePostLikesByPostId(@Param("postId") Long postId);
 

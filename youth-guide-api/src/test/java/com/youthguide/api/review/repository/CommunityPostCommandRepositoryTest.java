@@ -86,6 +86,26 @@ class CommunityPostCommandRepositoryTest {
                 .contains("post_id = :postId");
     }
 
+    @Test
+    void viewCountIncrementUsesAtomicUpsertAndPostKindGuard() throws NoSuchMethodException {
+        Method increment = CommunityPostCommandRepository.class.getMethod(
+                "incrementPostViewCount", Long.class, String.class
+        );
+        Query query = increment.getAnnotation(Query.class);
+
+        assertThat(increment.isAnnotationPresent(Modifying.class)).isTrue();
+        assertThat(query.nativeQuery()).isTrue();
+        assertThat(query.value())
+                .contains("INSERT INTO community_post_metric (post_id, view_count)")
+                .contains("SELECT p.post_id, 1")
+                .contains("FROM community_post p")
+                .contains("p.post_id = :postId")
+                .contains("p.post_kind = :postKind")
+                .contains("ON DUPLICATE KEY UPDATE")
+                .contains("view_count = view_count + 1")
+                .doesNotContain("FOR UPDATE");
+    }
+
     private void assertNativeDelete(String methodName, String tableName) throws NoSuchMethodException {
         Method method = CommunityPostCommandRepository.class.getMethod(methodName, Long.class);
         Query query = method.getAnnotation(Query.class);
