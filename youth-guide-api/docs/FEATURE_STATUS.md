@@ -37,7 +37,7 @@ features:
     work_status: IN_REVIEW
     acceptance_passed: 15
     acceptance_total: 15
-    verification_status: PASSED
+    verification_status: PARTIAL
     review_status: PENDING
     integration_status: BRANCH_ONLY
     deployment_status: NOT_APPLICABLE
@@ -96,6 +96,40 @@ features:
     latest_worklog: docs/worklogs/WBS-12-04-REVIEW-COMMENT__codex__20261012T134019Z.md
     source_revision: 790bfd159bf8a646ee801d081598e8dfceb48f24 (+ 미커밋 12.04 변경)
     updated_at: '2026-10-15T01:52:14Z'
+    missing_reasons: {}
+  - feature_id: WBS-12-05-REVIEW-VIEW
+    name: 시험후기 조회수
+    human_owner: current_user
+    actor_id: codex
+    implementation_status: IMPLEMENTED
+    work_status: IN_REVIEW
+    acceptance_passed: 10
+    acceptance_total: 10
+    verification_status: PARTIAL
+    review_status: PENDING
+    integration_status: BRANCH_ONLY
+    deployment_status: NOT_APPLICABLE
+    feature_file: docs/features/WBS-12-05-REVIEW-VIEW.md
+    latest_worklog: docs/worklogs/WBS-12-05-REVIEW-VIEW__codex__20261016T095526Z.md
+    source_revision: a03cc5c3f26ba5bff26a3a935f53ed3e01e0d3ae (+ 미커밋 12.05 변경)
+    updated_at: '2026-10-16T15:12:33Z'
+    missing_reasons: {}
+  - feature_id: WBS-12-06-REVIEW-REPORT
+    name: 시험후기 신고
+    human_owner: current_user
+    actor_id: codex
+    implementation_status: IMPLEMENTED
+    work_status: IN_REVIEW
+    acceptance_passed: 16
+    acceptance_total: 16
+    verification_status: PASSED
+    review_status: PENDING
+    integration_status: LOCAL_ONLY
+    deployment_status: NOT_APPLICABLE
+    feature_file: docs/features/WBS-12-06-REVIEW-REPORT.md
+    latest_worklog: docs/worklogs/WBS-12-06-REVIEW-REPORT__codex__20261016T163030Z.md
+    source_revision: 4e22b9ad7e19206a072c86a21473aa35a2eaf887 (+ 미커밋 12.06 변경)
+    updated_at: '2026-10-17T02:38:09Z'
     missing_reasons: {}
 ```
 새 항목: 아래 필드를 feature_file에서 복사한다. 기억에 의존해 실제 상태를 다시 만들어 넣지 않는다.

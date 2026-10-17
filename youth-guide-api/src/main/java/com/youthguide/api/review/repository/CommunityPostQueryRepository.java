@@ -43,6 +43,16 @@ public interface CommunityPostQueryRepository extends Repository<CommunityPost, 
                     LEFT JOIN community_post_metric pm
                         ON pm.post_id = p.post_id
                     WHERE p.post_kind = :postKind
+                      AND p.hidden_at IS NULL
+                      AND (
+                          :viewerMemberId IS NULL
+                          OR NOT EXISTS (
+                              SELECT 1
+                              FROM community_post_report report
+                              WHERE report.post_id = p.post_id
+                                AND report.reporter_member_id = :viewerMemberId
+                          )
+                      )
                       AND (
                           :qPattern IS NULL
                           OR p.title LIKE :qPattern ESCAPE '\\\\'
@@ -57,6 +67,16 @@ public interface CommunityPostQueryRepository extends Repository<CommunityPost, 
                     LEFT JOIN certificate c
                         ON c.certificate_id = p.certificate_id
                     WHERE p.post_kind = :postKind
+                      AND p.hidden_at IS NULL
+                      AND (
+                          :viewerMemberId IS NULL
+                          OR NOT EXISTS (
+                              SELECT 1
+                              FROM community_post_report report
+                              WHERE report.post_id = p.post_id
+                                AND report.reporter_member_id = :viewerMemberId
+                          )
+                      )
                       AND (
                           :qPattern IS NULL
                           OR p.title LIKE :qPattern ESCAPE '\\\\'
@@ -69,6 +89,7 @@ public interface CommunityPostQueryRepository extends Repository<CommunityPost, 
     Page<CommunityPostSummaryProjection> findPage(
             @Param("postKind") String postKind,
             @Param("qPattern") String qPattern,
+            @Param("viewerMemberId") Long viewerMemberId,
             Pageable pageable
     );
 
@@ -105,12 +126,23 @@ public interface CommunityPostQueryRepository extends Repository<CommunityPost, 
                         ON pm.post_id = p.post_id
                     WHERE p.post_id = :postId
                       AND p.post_kind = :postKind
+                      AND p.hidden_at IS NULL
+                      AND (
+                          :viewerMemberId IS NULL
+                          OR NOT EXISTS (
+                              SELECT 1
+                              FROM community_post_report report
+                              WHERE report.post_id = p.post_id
+                                AND report.reporter_member_id = :viewerMemberId
+                          )
+                      )
                     """,
             nativeQuery = true
     )
     Optional<CommunityPostDetailProjection> findDetail(
             @Param("postId") Long postId,
-            @Param("postKind") String postKind
+            @Param("postKind") String postKind,
+            @Param("viewerMemberId") Long viewerMemberId
     );
 
     boolean existsByPostIdAndPostKind(Long postId, String postKind);

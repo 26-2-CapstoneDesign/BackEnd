@@ -7,12 +7,14 @@ import com.youthguide.api.review.dto.CommunityPostAuthorResponse;
 import com.youthguide.api.review.dto.CommunityPostDetailResponse;
 import com.youthguide.api.review.dto.CommunityPostPageResponse;
 import com.youthguide.api.review.dto.CommunityPostSummaryResponse;
+import com.youthguide.api.review.service.CommunityPostCommandService;
 import com.youthguide.api.review.service.CommunityPostQueryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -32,11 +34,15 @@ class CommunityPostQueryControllerTest {
     @Mock
     private CommunityPostQueryService service;
 
+    @Mock
+    private CommunityPostCommandService commandService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = standaloneSetup(new CommunityPostQueryController(service))
+        mockMvc = standaloneSetup(new CommunityPostQueryController(service, commandService))
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -58,7 +64,7 @@ class CommunityPostQueryControllerTest {
         CommunityPostPageResponse response = new CommunityPostPageResponse(
                 List.of(item), 2, 5, 11L, 3, false
         );
-        when(service.getPosts("정보처리", 2, 5)).thenReturn(response);
+        when(service.getPosts("정보처리", 2, 5, null)).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/community/posts")
                         .queryParam("q", "정보처리")
@@ -75,12 +81,13 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.hasNext").value(false))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
-        verify(service).getPosts("정보처리", 2, 5);
+        verify(service).getPosts("정보처리", 2, 5, null);
+        verifyNoInteractions(commandService);
     }
 
     @Test
     void usesZeroAndTwentyAsDefaultPageValues() throws Exception {
-        when(service.getPosts(null, 0, 20))
+        when(service.getPosts(null, 0, 20, null))
                 .thenReturn(new CommunityPostPageResponse(List.of(), 0, 20, 0L, 0, false));
 
         mockMvc.perform(get("/api/v1/community/posts"))
@@ -88,7 +95,8 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(20));
 
-        verify(service).getPosts(null, 0, 20);
+        verify(service).getPosts(null, 0, 20, null);
+        verifyNoInteractions(commandService);
     }
 
     @Test
@@ -100,7 +108,7 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
                 .andExpect(jsonPath("$.fieldErrors").isArray());
 
-        verifyNoInteractions(service);
+        verifyNoInteractions(service, commandService);
     }
 
     @Test
@@ -112,7 +120,7 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
                 .andExpect(jsonPath("$.fieldErrors").isArray());
 
-        verifyNoInteractions(service);
+        verifyNoInteractions(service, commandService);
     }
 
     @Test
@@ -131,7 +139,7 @@ class CommunityPostQueryControllerTest {
                 3L,
                 4L
         );
-        when(service.getPost(101L)).thenReturn(response);
+        when(service.getPost(101L, null)).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/community/posts/101"))
                 .andExpect(status().isOk())
@@ -142,17 +150,20 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.commentCount").value(4))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
-        verify(service).getPost(101L);
+        verify(service).getPost(101L, null);
+        verifyNoInteractions(commandService);
     }
 
     @Test
     void returnsCommonNotFoundResponseWhenDetailDoesNotExist() throws Exception {
-        when(service.getPost(999L)).thenThrow(new BusinessException(ErrorCode.POST_NOT_FOUND));
+        when(service.getPost(999L, null)).thenThrow(new BusinessException(ErrorCode.POST_NOT_FOUND));
 
         mockMvc.perform(get("/api/v1/community/posts/999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("게시글을 찾을 수 없습니다."))
                 .andExpect(jsonPath("$.fieldErrors").isArray());
+
+        verifyNoInteractions(commandService);
     }
 }
