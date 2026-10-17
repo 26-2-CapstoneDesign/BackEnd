@@ -51,7 +51,7 @@ class CommunityPostQueryServiceTest {
                 createdAt.minusDays(1), updatedAt.minusDays(1), 0L, 0L, 1L
         );
         PageRequest expectedPageRequest = PageRequest.of(1, 2);
-        when(repository.findPage(CommunityPostKind.EXAM_REVIEW, "%100\\%\\_C:\\\\temp%", expectedPageRequest))
+        when(repository.findPage(CommunityPostKind.EXAM_REVIEW, "%100\\%\\_C:\\\\temp%", null, expectedPageRequest))
                 .thenReturn(new PageImpl<>(List.of(first, second), expectedPageRequest, 5));
 
         CommunityPostPageResponse response = service.getPosts("100%_C:\\temp", 1, 2);
@@ -60,6 +60,7 @@ class CommunityPostQueryServiceTest {
         verify(repository).findPage(
                 org.mockito.ArgumentMatchers.eq(CommunityPostKind.EXAM_REVIEW),
                 org.mockito.ArgumentMatchers.eq("%100\\%\\_C:\\\\temp%"),
+                org.mockito.ArgumentMatchers.isNull(),
                 pageableCaptor.capture()
         );
         Pageable pageable = pageableCaptor.getValue();
@@ -90,7 +91,7 @@ class CommunityPostQueryServiceTest {
     @Test
     void convertsMissingSearchValuesToNullPattern() {
         PageRequest pageRequest = PageRequest.of(0, 20);
-        when(repository.findPage(CommunityPostKind.EXAM_REVIEW, null, pageRequest))
+        when(repository.findPage(CommunityPostKind.EXAM_REVIEW, null, null, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(), pageRequest, 0));
 
         service.getPosts(null, 0, 20);
@@ -98,7 +99,25 @@ class CommunityPostQueryServiceTest {
         service.getPosts("   ", 0, 20);
 
         verify(repository, org.mockito.Mockito.times(3))
-                .findPage(CommunityPostKind.EXAM_REVIEW, null, pageRequest);
+                .findPage(CommunityPostKind.EXAM_REVIEW, null, null, pageRequest);
+    }
+
+    @Test
+    void passesViewerMemberIdToListAndDetailQueries() {
+        PageRequest pageRequest = PageRequest.of(0, 20);
+        when(repository.findPage(CommunityPostKind.EXAM_REVIEW, null, 100L, pageRequest))
+                .thenReturn(new PageImpl<>(List.of(), pageRequest, 0));
+        when(repository.findDetail(999L, CommunityPostKind.EXAM_REVIEW, 100L))
+                .thenReturn(Optional.empty());
+
+        service.getPosts(null, 0, 20, 100L);
+        assertThatThrownBy(() -> service.getPost(999L, 100L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).getErrorCode())
+                .isEqualTo(ErrorCode.POST_NOT_FOUND);
+
+        verify(repository).findPage(CommunityPostKind.EXAM_REVIEW, null, 100L, pageRequest);
+        verify(repository).findDetail(999L, CommunityPostKind.EXAM_REVIEW, 100L);
     }
 
     @Test
@@ -109,7 +128,7 @@ class CommunityPostQueryServiceTest {
                 timestamp, timestamp, 0L, 0L, 0L
         );
         PageRequest pageRequest = PageRequest.of(0, 20);
-        when(repository.findPage(CommunityPostKind.EXAM_REVIEW, null, pageRequest))
+        when(repository.findPage(CommunityPostKind.EXAM_REVIEW, null, null, pageRequest))
                 .thenReturn(new PageImpl<>(List.of(projection), pageRequest, 1));
 
         CommunityPostSummaryResponse response = service
@@ -141,7 +160,7 @@ class CommunityPostQueryServiceTest {
         when(projection.getViewCount()).thenReturn(20L);
         when(projection.getLikeCount()).thenReturn(4L);
         when(projection.getCommentCount()).thenReturn(5L);
-        when(repository.findDetail(101L, CommunityPostKind.EXAM_REVIEW)).thenReturn(Optional.of(projection));
+        when(repository.findDetail(101L, CommunityPostKind.EXAM_REVIEW, null)).thenReturn(Optional.of(projection));
 
         CommunityPostDetailResponse response = service.getPost(101L);
 
@@ -161,7 +180,7 @@ class CommunityPostQueryServiceTest {
 
     @Test
     void throwsPostNotFoundWhenDetailDoesNotExist() {
-        when(repository.findDetail(999L, CommunityPostKind.EXAM_REVIEW))
+        when(repository.findDetail(999L, CommunityPostKind.EXAM_REVIEW, null))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getPost(999L))

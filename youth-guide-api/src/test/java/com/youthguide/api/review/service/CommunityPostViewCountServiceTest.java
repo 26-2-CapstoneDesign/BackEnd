@@ -69,4 +69,26 @@ class CommunityPostViewCountServiceTest {
                 .extracting(exception -> ((BusinessException) exception).getErrorCode())
                 .isEqualTo(ErrorCode.POST_NOT_FOUND);
     }
+
+    @Test
+    void incrementsOnlyWhenPostIsVisibleToAuthenticatedViewer() {
+        when(repository.incrementVisiblePostViewCount(300L, CommunityPostKind.EXAM_REVIEW, 100L))
+                .thenReturn(1);
+
+        service.incrementVisibleViewCount(300L, 100L);
+
+        verify(repository).incrementVisiblePostViewCount(300L, CommunityPostKind.EXAM_REVIEW, 100L);
+        verify(repository, never()).findForUpdateByPostIdAndPostKind(300L, CommunityPostKind.EXAM_REVIEW);
+    }
+
+    @Test
+    void rejectsHiddenOrReporterFilteredPostWithoutIncrementingVisibleView() {
+        when(repository.incrementVisiblePostViewCount(300L, CommunityPostKind.EXAM_REVIEW, 100L))
+                .thenReturn(0);
+
+        assertThatThrownBy(() -> service.incrementVisibleViewCount(300L, 100L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(exception -> ((BusinessException) exception).getErrorCode())
+                .isEqualTo(ErrorCode.POST_NOT_FOUND);
+    }
 }

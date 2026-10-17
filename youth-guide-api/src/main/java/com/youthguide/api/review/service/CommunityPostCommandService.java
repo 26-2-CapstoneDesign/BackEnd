@@ -7,14 +7,21 @@ import com.youthguide.api.review.domain.CommunityPost;
 import com.youthguide.api.review.domain.CommunityPostKind;
 import com.youthguide.api.review.dto.CommunityPostCreateRequest;
 import com.youthguide.api.review.dto.CommunityPostLikeResponse;
+import com.youthguide.api.review.dto.CommunityPostReportCreateRequest;
 import com.youthguide.api.review.dto.CommunityPostUpdateRequest;
 import com.youthguide.api.review.repository.CommunityPostCommandRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Locale;
 
 @Service
 @Transactional
 public class CommunityPostCommandService {
+
+    private static final long HIDE_REPORT_THRESHOLD = 3L;
+    private static final String UQ_POST_REPORTER = "uq_community_post_report_post_reporter";
 
     private final CommunityPostCommandRepository repository;
     private final CertificateRepository certificateRepository;
@@ -101,6 +108,42 @@ public class CommunityPostCommandService {
         return new DeleteResult(DeleteStatus.DELETED, postId, expectedVersion, currentVersion);
     }
 
+    public void reportPost(
+            Long postId,
+            Long reporterMemberId,
+            CommunityPostReportCreateRequest request
+    ) {
+        CommunityPost post = repository.findForUpdateByPostIdAndPostKind(
+                postId,
+                CommunityPostKind.EXAM_REVIEW
+        ).orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+
+        if (post.isHidden()) {
+            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
+        }
+        if (post.isAuthoredBy(reporterMemberId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        if (repository.countPostReportByPostIdAndReporterMemberId(postId, reporterMemberId) > 0L) {
+            throw new BusinessException(ErrorCode.REPORT_ALREADY_EXISTS);
+        }
+
+        try {
+            repository.insertPostReport(
+                    postId,
+                    reporterMemberId,
+                    request.reason().name(),
+                    request.normalizedDetail()
+            );
+        } catch (DataIntegrityViolationException exception) {
+            throw toReportDuplicateException(exception);
+        }
+
+        if (repository.countPostReportsByPostId(postId) >= HIDE_REPORT_THRESHOLD) {
+            post.hide();
+        }
+    }
+
     public CommunityPostLikeResponse addLike(Long postId, Long memberId) {
         lockExamReviewPost(postId);
         if (repository.countPostLikeByPostIdAndMemberId(postId, memberId) == 0L) {
@@ -124,6 +167,17 @@ public class CommunityPostCommandService {
         }
     }
 
+    public void incrementVisibleViewCount(Long postId, Long viewerMemberId) {
+        int affectedRows = repository.incrementVisiblePostViewCount(
+                postId,
+                CommunityPostKind.EXAM_REVIEW,
+                viewerMemberId
+        );
+        if (affectedRows == 0) {
+            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
+        }
+    }
+
     private void lockExamReviewPost(Long postId) {
         repository.findForUpdateByPostIdAndPostKind(postId, CommunityPostKind.EXAM_REVIEW)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
@@ -133,6 +187,15 @@ public class CommunityPostCommandService {
         if (!certificateRepository.existsById(certificateId)) {
             throw new BusinessException(ErrorCode.CERTIFICATE_NOT_FOUND);
         }
+    }
+
+    private BusinessException toReportDuplicateException(DataIntegrityViolationException exception) {
+        String detail = String.valueOf(exception.getMostSpecificCause().getMessage())
+                .toLowerCase(Locale.ROOT);
+        if (detail.contains(UQ_POST_REPORTER)) {
+            return new BusinessException(ErrorCode.REPORT_ALREADY_EXISTS, exception);
+        }
+        throw exception;
     }
 
     public enum UpdateStatus {

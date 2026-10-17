@@ -106,6 +106,58 @@ class CommunityPostCommandRepositoryTest {
                 .doesNotContain("FOR UPDATE");
     }
 
+    @Test
+    void reportCommandsUseReporterUniqueKeyColumnsAndBoundValues() throws NoSuchMethodException {
+        Method duplicateCheck = CommunityPostCommandRepository.class.getMethod(
+                "countPostReportByPostIdAndReporterMemberId", Long.class, Long.class
+        );
+        Query duplicateQuery = duplicateCheck.getAnnotation(Query.class);
+        assertThat(duplicateQuery.nativeQuery()).isTrue();
+        assertThat(duplicateQuery.value())
+                .contains("FROM community_post_report")
+                .contains("post_id = :postId")
+                .contains("reporter_member_id = :reporterMemberId");
+
+        Method insert = CommunityPostCommandRepository.class.getMethod(
+                "insertPostReport", Long.class, Long.class, String.class, String.class
+        );
+        Query insertQuery = insert.getAnnotation(Query.class);
+        assertThat(insert.isAnnotationPresent(Modifying.class)).isTrue();
+        assertThat(insertQuery.nativeQuery()).isTrue();
+        assertThat(insertQuery.value())
+                .contains("INSERT INTO community_post_report (post_id, reporter_member_id, reason, detail)")
+                .contains("VALUES (:postId, :reporterMemberId, :reason, :detail)");
+
+        Method count = CommunityPostCommandRepository.class.getMethod(
+                "countPostReportsByPostId", Long.class
+        );
+        Query countQuery = count.getAnnotation(Query.class);
+        assertThat(countQuery.nativeQuery()).isTrue();
+        assertThat(countQuery.value())
+                .contains("SELECT COUNT(*)")
+                .contains("FROM community_post_report")
+                .contains("post_id = :postId");
+    }
+
+    @Test
+    void visibleViewIncrementExcludesHiddenAndReporterSpecificPosts() throws NoSuchMethodException {
+        Method increment = CommunityPostCommandRepository.class.getMethod(
+                "incrementVisiblePostViewCount", Long.class, String.class, Long.class
+        );
+        Query query = increment.getAnnotation(Query.class);
+
+        assertThat(increment.isAnnotationPresent(Modifying.class)).isTrue();
+        assertThat(query.nativeQuery()).isTrue();
+        assertThat(query.value())
+                .contains("p.post_kind = :postKind")
+                .contains("p.hidden_at IS NULL")
+                .contains("NOT EXISTS")
+                .contains("FROM community_post_report report")
+                .contains("report.reporter_member_id = :viewerMemberId")
+                .contains("ON DUPLICATE KEY UPDATE")
+                .contains("view_count = view_count + 1");
+    }
+
     private void assertNativeDelete(String methodName, String tableName) throws NoSuchMethodException {
         Method method = CommunityPostCommandRepository.class.getMethod(methodName, Long.class);
         Query query = method.getAnnotation(Query.class);

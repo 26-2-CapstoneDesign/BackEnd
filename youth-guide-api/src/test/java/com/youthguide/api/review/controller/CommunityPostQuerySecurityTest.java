@@ -64,7 +64,7 @@ class CommunityPostQuerySecurityTest {
 
     @Test
     void allowsAnonymousListRequest() throws Exception {
-        when(service.getPosts(null, 0, 20))
+        when(service.getPosts(null, 0, 20, null))
                 .thenReturn(new CommunityPostPageResponse(List.of(), 0, 20, 0L, 0, false));
 
         mockMvc.perform(get("/api/v1/community/posts"))
@@ -72,13 +72,13 @@ class CommunityPostQuerySecurityTest {
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(20));
 
-        verify(service).getPosts(null, 0, 20);
+        verify(service).getPosts(null, 0, 20, null);
         verifyNoInteractions(commandService);
     }
 
     @Test
     void allowsAnonymousSearchRequest() throws Exception {
-        when(service.getPosts("정보처리", 1, 5))
+        when(service.getPosts("정보처리", 1, 5, null))
                 .thenReturn(new CommunityPostPageResponse(List.of(), 1, 5, 0L, 0, false));
 
         mockMvc.perform(get("/api/v1/community/posts")
@@ -89,7 +89,7 @@ class CommunityPostQuerySecurityTest {
                 .andExpect(jsonPath("$.page").value(1))
                 .andExpect(jsonPath("$.size").value(5));
 
-        verify(service).getPosts("정보처리", 1, 5);
+        verify(service).getPosts("정보처리", 1, 5, null);
         verifyNoInteractions(commandService);
     }
 
@@ -109,19 +109,19 @@ class CommunityPostQuerySecurityTest {
                 3L,
                 4L
         );
-        when(service.getPost(101L)).thenReturn(response);
+        when(service.getPost(101L, null)).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/community/posts/101"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.postId").value("101"));
 
-        verify(service).getPost(101L);
+        verify(service).getPost(101L, null);
         verifyNoInteractions(commandService);
     }
 
     @Test
     void returnsNotFoundToAnonymousDetailRequest() throws Exception {
-        when(service.getPost(999L)).thenThrow(new BusinessException(ErrorCode.POST_NOT_FOUND));
+        when(service.getPost(999L, null)).thenThrow(new BusinessException(ErrorCode.POST_NOT_FOUND));
 
         mockMvc.perform(get("/api/v1/community/posts/999"))
                 .andExpect(status().isNotFound())
@@ -132,7 +132,7 @@ class CommunityPostQuerySecurityTest {
 
     @Test
     void incrementsViewCountForEveryRepeatedAuthenticatedDetailRequest() throws Exception {
-        when(service.getPost(101L)).thenReturn(detailResponse(15L));
+        when(service.getPost(101L, 100L)).thenReturn(detailResponse(15L));
         LoginMember member = loginMember(100L, "member-100");
 
         for (int requestCount = 0; requestCount < 3; requestCount++) {
@@ -143,14 +143,15 @@ class CommunityPostQuerySecurityTest {
 
         InOrder invocationOrder = inOrder(commandService, service);
         for (int requestCount = 0; requestCount < 3; requestCount++) {
-            invocationOrder.verify(commandService).incrementViewCount(101L);
-            invocationOrder.verify(service).getPost(101L);
+            invocationOrder.verify(commandService).incrementVisibleViewCount(101L, 100L);
+            invocationOrder.verify(service).getPost(101L, 100L);
         }
     }
 
     @Test
     void incrementsViewCountForDifferentAuthenticatedMembersIncludingAuthor() throws Exception {
-        when(service.getPost(101L)).thenReturn(detailResponse(14L), detailResponse(15L));
+        when(service.getPost(101L, 100L)).thenReturn(detailResponse(14L));
+        when(service.getPost(101L, 101L)).thenReturn(detailResponse(15L));
 
         mockMvc.perform(get("/api/v1/community/posts/101")
                         .with(user(loginMember(100L, "post-author"))))
@@ -159,26 +160,28 @@ class CommunityPostQuerySecurityTest {
                         .with(user(loginMember(101L, "other-member"))))
                 .andExpect(status().isOk());
 
-        verify(commandService, times(2)).incrementViewCount(101L);
-        verify(service, times(2)).getPost(101L);
+        verify(commandService).incrementVisibleViewCount(101L, 100L);
+        verify(commandService).incrementVisibleViewCount(101L, 101L);
+        verify(service).getPost(101L, 100L);
+        verify(service).getPost(101L, 101L);
     }
 
     @Test
     void returnsNotFoundBeforeDetailQueryWhenAuthenticatedTargetIsInvalid() throws Exception {
         doThrow(new BusinessException(ErrorCode.POST_NOT_FOUND))
-                .when(commandService).incrementViewCount(999L);
+                .when(commandService).incrementVisibleViewCount(999L, 100L);
 
         mockMvc.perform(get("/api/v1/community/posts/999")
                         .with(user(loginMember(100L, "member-100"))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
 
-        verify(service, never()).getPost(999L);
+        verify(service, never()).getPost(999L, 100L);
     }
 
     @Test
     void keepsAuthenticatedListAndSearchFromIncrementingViewCount() throws Exception {
-        when(service.getPosts("정보처리", 0, 20))
+        when(service.getPosts("정보처리", 0, 20, 100L))
                 .thenReturn(new CommunityPostPageResponse(List.of(), 0, 20, 0L, 0, false));
 
         mockMvc.perform(get("/api/v1/community/posts")
@@ -186,7 +189,7 @@ class CommunityPostQuerySecurityTest {
                         .queryParam("q", "정보처리"))
                 .andExpect(status().isOk());
 
-        verify(service).getPosts("정보처리", 0, 20);
+        verify(service).getPosts("정보처리", 0, 20, 100L);
         verifyNoInteractions(commandService);
     }
 

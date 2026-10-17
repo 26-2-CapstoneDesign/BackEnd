@@ -67,6 +67,36 @@ public interface CommunityPostCommandRepository extends Repository<CommunityPost
             """, nativeQuery = true)
     long countPostLikesByPostId(@Param("postId") Long postId);
 
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM community_post_report
+            WHERE post_id = :postId
+              AND reporter_member_id = :reporterMemberId
+            """, nativeQuery = true)
+    long countPostReportByPostIdAndReporterMemberId(
+            @Param("postId") Long postId,
+            @Param("reporterMemberId") Long reporterMemberId
+    );
+
+    @Modifying
+    @Query(value = """
+            INSERT INTO community_post_report (post_id, reporter_member_id, reason, detail)
+            VALUES (:postId, :reporterMemberId, :reason, :detail)
+            """, nativeQuery = true)
+    int insertPostReport(
+            @Param("postId") Long postId,
+            @Param("reporterMemberId") Long reporterMemberId,
+            @Param("reason") String reason,
+            @Param("detail") String detail
+    );
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM community_post_report
+            WHERE post_id = :postId
+            """, nativeQuery = true)
+    long countPostReportsByPostId(@Param("postId") Long postId);
+
     @Modifying
     @Query(value = """
             INSERT INTO community_post_metric (post_id, view_count)
@@ -80,6 +110,29 @@ public interface CommunityPostCommandRepository extends Repository<CommunityPost
     int incrementPostViewCount(
             @Param("postId") Long postId,
             @Param("postKind") String postKind
+    );
+
+    @Modifying
+    @Query(value = """
+            INSERT INTO community_post_metric (post_id, view_count)
+            SELECT p.post_id, 1
+            FROM community_post p
+            WHERE p.post_id = :postId
+              AND p.post_kind = :postKind
+              AND p.hidden_at IS NULL
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM community_post_report report
+                  WHERE report.post_id = p.post_id
+                    AND report.reporter_member_id = :viewerMemberId
+              )
+            ON DUPLICATE KEY UPDATE
+                view_count = view_count + 1
+            """, nativeQuery = true)
+    int incrementVisiblePostViewCount(
+            @Param("postId") Long postId,
+            @Param("postKind") String postKind,
+            @Param("viewerMemberId") Long viewerMemberId
     );
 
     @Modifying

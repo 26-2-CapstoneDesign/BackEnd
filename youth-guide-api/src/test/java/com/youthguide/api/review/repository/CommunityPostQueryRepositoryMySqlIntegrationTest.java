@@ -43,7 +43,8 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
             "member",
             "certificate",
             "community_post_metric",
-            "community_post_like"
+            "community_post_like",
+            "community_post_report"
     );
 
     @Autowired
@@ -92,7 +93,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
         String postKind = requireExistingPostKind();
         PageRequest pageRequest = PageRequest.of(0, PAGE_SIZE);
 
-        Page<CommunityPostSummaryProjection> page = repository.findPage(postKind, null, pageRequest);
+        Page<CommunityPostSummaryProjection> page = repository.findPage(postKind, null, null, pageRequest);
 
         long expectedTotal = countPosts(postKind);
         List<Long> expectedIds = findOrderedPostIds(postKind, 0, PAGE_SIZE);
@@ -138,6 +139,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
         Page<CommunityPostSummaryProjection> page = repository.findPage(
                 postKind,
                 null,
+                null,
                 PageRequest.of(1, PAGE_SIZE)
         );
 
@@ -159,7 +161,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
         String postKind = requireExistingPostKind();
         Long postId = requireFirstPostId(postKind);
 
-        Optional<CommunityPostDetailProjection> result = repository.findDetail(postId, postKind);
+        Optional<CommunityPostDetailProjection> result = repository.findDetail(postId, postKind, null);
 
         assertThat(result).hasValueSatisfying(detail -> {
             assertThat(detail.getPostId()).isEqualTo(postId);
@@ -196,13 +198,14 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
                   FROM community_post p
                   LEFT JOIN community_post_metric pm ON pm.post_id = p.post_id
                  WHERE pm.post_id IS NULL
+                   AND p.hidden_at IS NULL
                  ORDER BY p.created_at DESC, p.post_id DESC
                  LIMIT 1
                 """);
         Assumptions.assumeTrue(fixture.isPresent(), "metric 행이 없는 기존 게시글이 없어 검증을 건너뜁니다.");
 
         PostIdentity post = fixture.orElseThrow();
-        Optional<CommunityPostDetailProjection> result = repository.findDetail(post.postId(), post.postKind());
+        Optional<CommunityPostDetailProjection> result = repository.findDetail(post.postId(), post.postKind(), null);
 
         assertThat(result).hasValueSatisfying(detail -> assertThat(detail.getViewCount()).isZero());
     }
@@ -217,13 +220,14 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
                              FROM community_post_like post_like
                             WHERE post_like.post_id = p.post_id
                        )
+                   AND p.hidden_at IS NULL
                  ORDER BY p.created_at DESC, p.post_id DESC
                  LIMIT 1
                 """);
         Assumptions.assumeTrue(fixture.isPresent(), "좋아요가 없는 기존 게시글이 없어 검증을 건너뜁니다.");
 
         PostIdentity post = fixture.orElseThrow();
-        Optional<CommunityPostDetailProjection> result = repository.findDetail(post.postId(), post.postKind());
+        Optional<CommunityPostDetailProjection> result = repository.findDetail(post.postId(), post.postKind(), null);
 
         assertThat(result).hasValueSatisfying(detail -> assertThat(detail.getLikeCount()).isZero());
     }
@@ -241,6 +245,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
             Page<CommunityPostSummaryProjection> page = repository.findPage(
                     post.postKind(),
                     LikePatternEscaper.toContainsPattern(character),
+                    null,
                     PageRequest.of(0, PAGE_SIZE)
             );
 
@@ -258,6 +263,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
         List<String> postKinds = jdbcTemplate.query("""
                 SELECT post_kind
                   FROM community_post
+                 WHERE hidden_at IS NULL
                  GROUP BY post_kind
                  ORDER BY COUNT(*) DESC, post_kind
                  LIMIT 1
@@ -274,7 +280,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
 
     private long countPosts(String postKind) {
         Long count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM community_post WHERE post_kind = ?",
+                "SELECT COUNT(*) FROM community_post WHERE post_kind = ? AND hidden_at IS NULL",
                 Long.class,
                 postKind
         );
@@ -289,6 +295,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
                   LEFT JOIN certificate c ON c.certificate_id = p.certificate_id
                   LEFT JOIN community_post_metric pm ON pm.post_id = p.post_id
                  WHERE p.post_kind = ?
+                   AND p.hidden_at IS NULL
                  ORDER BY p.created_at DESC, p.post_id DESC
                  LIMIT ? OFFSET ?
                 """, (resultSet, rowNumber) -> resultSet.getLong("post_id"), postKind, limit, offset);
@@ -309,6 +316,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
                 SELECT p.post_id, p.post_kind, p.title AS source_text
                   FROM community_post p
                  WHERE CHAR_LENGTH(TRIM(p.title)) > 0
+                   AND p.hidden_at IS NULL
                  ORDER BY p.created_at DESC, p.post_id DESC
                  LIMIT 1
                 """);
@@ -319,6 +327,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
                 SELECT p.post_id, p.post_kind, p.body AS source_text
                   FROM community_post p
                  WHERE CHAR_LENGTH(TRIM(p.body)) > 0
+                   AND p.hidden_at IS NULL
                  ORDER BY p.created_at DESC, p.post_id DESC
                  LIMIT 1
                 """);
@@ -330,6 +339,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
                   FROM community_post p
                   JOIN certificate c ON c.certificate_id = p.certificate_id
                  WHERE CHAR_LENGTH(TRIM(c.display_name)) > 0
+                   AND p.hidden_at IS NULL
                  ORDER BY p.created_at DESC, p.post_id DESC
                  LIMIT 1
                 """);
@@ -340,9 +350,12 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
                 SELECT p.post_id, p.post_kind, ? AS source_text
                   FROM community_post p
                   LEFT JOIN certificate c ON c.certificate_id = p.certificate_id
-                 WHERE LOCATE(?, p.title) > 0
-                    OR LOCATE(?, p.body) > 0
-                    OR LOCATE(?, c.display_name) > 0
+                 WHERE p.hidden_at IS NULL
+                   AND (
+                       LOCATE(?, p.title) > 0
+                       OR LOCATE(?, p.body) > 0
+                       OR LOCATE(?, c.display_name) > 0
+                   )
                  ORDER BY p.created_at DESC, p.post_id DESC
                  LIMIT 1
                 """, (resultSet, rowNumber) -> new SearchFixture(
@@ -371,6 +384,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
         Page<CommunityPostSummaryProjection> page = repository.findPage(
                 post.postKind(),
                 LikePatternEscaper.toContainsPattern(keyword),
+                null,
                 PageRequest.of(0, PAGE_SIZE)
         );
 
@@ -384,6 +398,7 @@ class CommunityPostQueryRepositoryMySqlIntegrationTest {
                   FROM community_post p
                   LEFT JOIN certificate c ON c.certificate_id = p.certificate_id
                  WHERE p.post_kind = ?
+                   AND p.hidden_at IS NULL
                    AND (
                        LOCATE(?, p.title) > 0
                        OR LOCATE(?, p.body) > 0

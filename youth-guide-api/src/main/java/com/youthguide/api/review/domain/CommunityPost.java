@@ -44,6 +44,9 @@ public class CommunityPost {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "hidden_at")
+    private LocalDateTime hiddenAt;
+
     @Version
     @Column(name = "lock_version", nullable = false)
     private Long lockVersion;
@@ -80,6 +83,16 @@ public class CommunityPost {
 
     public boolean isAuthoredBy(Long memberId) {
         return Objects.equals(authorMemberId, memberId);
+    }
+
+    public boolean isHidden() {
+        return hiddenAt != null;
+    }
+
+    public void hide() {
+        if (hiddenAt == null) {
+            hiddenAt = LocalDateTime.now(ZoneOffset.UTC);
+        }
     }
 
     public void updateContent(Long certificateId, String title, String body) {

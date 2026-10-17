@@ -32,9 +32,11 @@ public class CommunityPostQueryController {
     public CommunityPostPageResponse getPosts(
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "page는 0 이상이어야 합니다.") int page,
-            @RequestParam(defaultValue = "20") @Min(value = 1, message = "size는 1 이상이어야 합니다.") int size
+            @RequestParam(defaultValue = "20") @Min(value = 1, message = "size는 1 이상이어야 합니다.") int size,
+            @AuthenticationPrincipal LoginMember loginMember
     ) {
-        return communityPostQueryService.getPosts(q, page, size);
+        Long viewerMemberId = loginMember == null ? null : loginMember.getMemberId();
+        return communityPostQueryService.getPosts(q, page, size, viewerMemberId);
     }
 
     @GetMapping("/{postId}")
@@ -42,9 +44,10 @@ public class CommunityPostQueryController {
             @PathVariable Long postId,
             @AuthenticationPrincipal LoginMember loginMember
     ) {
+        Long viewerMemberId = loginMember == null ? null : loginMember.getMemberId();
         if (loginMember != null) {
-            communityPostCommandService.incrementViewCount(postId);
+            communityPostCommandService.incrementVisibleViewCount(postId, viewerMemberId);
         }
-        return communityPostQueryService.getPost(postId);
+        return communityPostQueryService.getPost(postId, viewerMemberId);
     }
 }

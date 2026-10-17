@@ -9,7 +9,9 @@ import com.youthguide.api.global.security.MemberUserDetailsService;
 import com.youthguide.api.global.security.SecurityErrorResponder;
 import com.youthguide.api.review.dto.CommunityPostCreateRequest;
 import com.youthguide.api.review.dto.CommunityPostLikeResponse;
+import com.youthguide.api.review.dto.CommunityPostReportCreateRequest;
 import com.youthguide.api.review.dto.CommunityPostUpdateRequest;
+import com.youthguide.api.review.domain.CommunityPostReportReason;
 import com.youthguide.api.review.service.CommunityPostCommandService;
 import com.youthguide.api.review.service.CommunityPostCommandService.DeleteResult;
 import com.youthguide.api.review.service.CommunityPostCommandService.DeleteStatus;
@@ -345,6 +347,125 @@ class CommunityPostCommandControllerTest {
         verifyNoInteractions(service);
     }
 
+    @Test
+    void reportsPostWithAuthenticatedMemberAndCsrf() throws Exception {
+        CommunityPostReportCreateRequest expectedRequest = new CommunityPostReportCreateRequest(
+                CommunityPostReportReason.OTHER,
+                "기타 신고 사유"
+        );
+
+        mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "reason": "OTHER",
+                                  "detail": "기타 신고 사유"
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+
+        verify(service).reportPost(300L, 100L, expectedRequest);
+    }
+
+    @Test
+    void keepsReportAuthenticatedAndCsrfProtected() throws Exception {
+        mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(reportJson("SPAM", null)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+
+        mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                        .with(user(LOGIN_MEMBER))
+                        .contentType("application/json")
+                        .content(reportJson("SPAM", null)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+    }
+
+    @Test
+    void mapsReportBusinessErrorsToCommonResponses() throws Exception {
+        CommunityPostReportCreateRequest request = new CommunityPostReportCreateRequest(
+                CommunityPostReportReason.SPAM,
+                null
+        );
+
+        assertReportError(request, ErrorCode.POST_NOT_FOUND, "POST_NOT_FOUND", 404);
+        assertReportError(request, ErrorCode.ACCESS_DENIED, "ACCESS_DENIED", 403);
+        assertReportError(request, ErrorCode.REPORT_ALREADY_EXISTS, "REPORT_ALREADY_EXISTS", 409);
+    }
+
+    @Test
+    void acceptsAllDefinedReportReasons() throws Exception {
+        for (CommunityPostReportReason reason : CommunityPostReportReason.values()) {
+            String detail = reason == CommunityPostReportReason.OTHER ? "기타 사유" : null;
+
+            mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                            .with(user(LOGIN_MEMBER))
+                            .with(csrf())
+                            .contentType("application/json")
+                            .content(reportJson(reason.name(), detail)))
+                    .andExpect(status().isNoContent());
+        }
+    }
+
+    @Test
+    void rejectsMissingOrUnknownReportReason() throws Exception {
+        mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+
+        mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(reportJson("UNKNOWN", null)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
+    @Test
+    void enforcesReportDetailPolicy() throws Exception {
+        mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(reportJson("OTHER", null)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+
+        mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(reportJson("OTHER", " ")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+
+        mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(reportJson("SPAM", "허용되지 않는 상세")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+
+        mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(reportJson("OTHER", "가".repeat(256))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
     private void assertUpdateError(
             CommunityPostUpdateRequest request,
             UpdateStatus status,
@@ -379,6 +500,24 @@ class CommunityPostCommandControllerTest {
                 .andExpect(jsonPath("$.code").value(expectedCode));
     }
 
+    private void assertReportError(
+            CommunityPostReportCreateRequest request,
+            ErrorCode errorCode,
+            String expectedCode,
+            int expectedHttpStatus
+    ) throws Exception {
+        org.mockito.Mockito.doThrow(new BusinessException(errorCode))
+                .when(service).reportPost(300L, 100L, request);
+
+        mockMvc.perform(post("/api/v1/community/posts/300/reports")
+                        .with(user(LOGIN_MEMBER))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(reportJson("SPAM", null)))
+                .andExpect(status().is(expectedHttpStatus))
+                .andExpect(jsonPath("$.code").value(expectedCode));
+    }
+
     private static String createJson() {
         return """
                 {
@@ -398,5 +537,16 @@ class CommunityPostCommandControllerTest {
                   "version": "7"
                 }
                 """;
+    }
+
+    private static String reportJson(String reason, String detail) {
+        String detailProperty = detail == null
+                ? ""
+                : ",\n  \"detail\": \"" + detail + "\"";
+        return """
+                {
+                  "reason": "%s"%s
+                }
+                """.formatted(reason, detailProperty);
     }
 }

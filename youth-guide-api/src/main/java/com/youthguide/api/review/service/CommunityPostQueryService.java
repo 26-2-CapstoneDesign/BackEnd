@@ -32,11 +32,16 @@ public class CommunityPostQueryService {
     }
 
     public CommunityPostPageResponse getPosts(String q, int page, int size) {
+        return getPosts(q, page, size, null);
+    }
+
+    public CommunityPostPageResponse getPosts(String q, int page, int size, Long viewerMemberId) {
         String qPattern = LikePatternEscaper.toContainsPattern(q);
         PageRequest pageRequest = PageRequest.of(page, size);
         Page<CommunityPostSummaryProjection> result = repository.findPage(
                 CommunityPostKind.EXAM_REVIEW,
                 qPattern,
+                viewerMemberId,
                 pageRequest
         );
 
@@ -55,7 +60,11 @@ public class CommunityPostQueryService {
     }
 
     public CommunityPostDetailResponse getPost(Long postId) {
-        return repository.findDetail(postId, CommunityPostKind.EXAM_REVIEW)
+        return getPost(postId, null);
+    }
+
+    public CommunityPostDetailResponse getPost(Long postId, Long viewerMemberId) {
+        return repository.findDetail(postId, CommunityPostKind.EXAM_REVIEW, viewerMemberId)
                 .map(CommunityPostQueryService::toDetailResponse)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
     }

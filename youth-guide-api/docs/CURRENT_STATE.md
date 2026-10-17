@@ -27,5 +27,6 @@ active_tasks:
   - {task_id: WBS-10-03-REVIEW-LIKE, kind: FEATURE, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/features/WBS-10-03-REVIEW-LIKE.md], latest_worklog: docs/worklogs/WBS-10-03-REVIEW-LIKE__codex__20261011T125740Z.md, next_action: 사용자 검토 후 격리된 MySQL 실제 쓰기 통합 검증 필요 여부를 결정한다.}
   - {task_id: WBS-12-04-REVIEW-COMMENT, kind: FEATURE, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/features/WBS-12-04-REVIEW-COMMENT.md], latest_worklog: docs/worklogs/WBS-12-04-REVIEW-COMMENT__codex__20261012T134019Z.md, next_action: 사용자 코드 검토 후 로컬 또는 격리된 MySQL에서 baseline 0과 V1 migration을 검증한다.}
   - {task_id: WBS-12-05-REVIEW-VIEW, kind: FEATURE, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/features/WBS-12-05-REVIEW-VIEW.md], latest_worklog: docs/worklogs/WBS-12-05-REVIEW-VIEW__codex__20261016T095526Z.md, next_action: 사용자 코드 검토 후 로컬 또는 격리된 MySQL에서 metric UPSERT와 동시 요청 누적을 검증한다.}
-updated_at: '2026-10-16T15:12:33Z'
+  - {task_id: WBS-12-06-REVIEW-REPORT, kind: FEATURE, actor_id: codex, work_status: IN_REVIEW, review_status: PENDING, required_files: [docs/features/WBS-12-06-REVIEW-REPORT.md], latest_worklog: docs/worklogs/WBS-12-06-REVIEW-REPORT__codex__20261016T163030Z.md, next_action: 사용자 코드 검토 후 커밋·PR 여부를 결정하고 공용 환경 migration은 별도 승인된 배포 절차에서만 수행한다.}
+updated_at: '2026-10-17T02:38:09Z'
 ```

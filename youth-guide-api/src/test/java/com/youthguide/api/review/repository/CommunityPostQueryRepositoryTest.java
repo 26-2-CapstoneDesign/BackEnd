@@ -16,6 +16,7 @@ class CommunityPostQueryRepositoryTest {
                 "findPage",
                 String.class,
                 String.class,
+                Long.class,
                 Pageable.class
         );
         Query query = method.getAnnotation(Query.class);
@@ -23,6 +24,8 @@ class CommunityPostQueryRepositoryTest {
         assertThat(query.nativeQuery()).isTrue();
         assertThat(query.value())
                 .contains("p.post_kind = :postKind")
+                .contains("p.hidden_at IS NULL")
+                .contains("report.reporter_member_id = :viewerMemberId")
                 .contains("p.title LIKE :qPattern ESCAPE '\\\\'")
                 .contains("p.body LIKE :qPattern ESCAPE '\\\\'")
                 .contains("c.display_name LIKE :qPattern ESCAPE '\\\\'")
@@ -35,6 +38,8 @@ class CommunityPostQueryRepositoryTest {
 
         assertThat(query.countQuery())
                 .contains("p.post_kind = :postKind")
+                .contains("p.hidden_at IS NULL")
+                .contains("report.reporter_member_id = :viewerMemberId")
                 .contains("c.display_name LIKE :qPattern ESCAPE '\\\\'")
                 .doesNotContain("community_post_metric")
                 .doesNotContain("community_post_like");
@@ -45,7 +50,8 @@ class CommunityPostQueryRepositoryTest {
         Method method = CommunityPostQueryRepository.class.getMethod(
                 "findDetail",
                 Long.class,
-                String.class
+                String.class,
+                Long.class
         );
         Query query = method.getAnnotation(Query.class);
 
@@ -53,6 +59,8 @@ class CommunityPostQueryRepositoryTest {
         assertThat(query.value())
                 .contains("p.post_id = :postId")
                 .contains("p.post_kind = :postKind")
+                .contains("p.hidden_at IS NULL")
+                .contains("report.reporter_member_id = :viewerMemberId")
                 .contains("COALESCE(pm.view_count, 0) AS viewCount")
                 .contains("FROM community_post_like post_like")
                 .contains("FROM community_post_comment post_comment")
