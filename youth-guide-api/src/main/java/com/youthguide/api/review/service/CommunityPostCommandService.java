@@ -92,6 +92,8 @@ public class CommunityPostCommandService {
             return new DeleteResult(DeleteStatus.VERSION_CONFLICT, postId, expectedVersion, currentVersion);
         }
 
+        repository.deletePostRepliesByPostId(postId);
+        repository.deletePostCommentsByPostId(postId);
         repository.deletePostLikesByPostId(postId);
         repository.deletePostMetricByPostId(postId);
         repository.deletePostReportsByPostId(postId);

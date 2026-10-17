@@ -92,7 +92,8 @@ class CommunityPostQuerySecurityTest {
                 "상세 본문",
                 "0",
                 12L,
-                3L
+                3L,
+                4L
         );
         when(service.getPost(101L)).thenReturn(response);
 

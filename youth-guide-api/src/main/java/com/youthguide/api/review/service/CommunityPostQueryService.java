@@ -70,7 +70,8 @@ public class CommunityPostQueryService {
                 toInstant(projection.getCreatedAt()),
                 toInstant(projection.getUpdatedAt()),
                 projection.getViewCount(),
-                projection.getLikeCount()
+                projection.getLikeCount(),
+                projection.getCommentCount()
         );
     }
 
@@ -86,7 +87,8 @@ public class CommunityPostQueryService {
                 projection.getBody(),
                 toStringId(projection.getLockVersion()),
                 projection.getViewCount(),
-                projection.getLikeCount()
+                projection.getLikeCount(),
+                projection.getCommentCount()
         );
     }
 

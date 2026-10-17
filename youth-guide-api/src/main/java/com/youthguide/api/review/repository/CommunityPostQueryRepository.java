@@ -28,7 +28,13 @@ public interface CommunityPostQueryRepository extends Repository<CommunityPost, 
                             SELECT COUNT(*)
                             FROM community_post_like post_like
                             WHERE post_like.post_id = p.post_id
-                        ) AS likeCount
+                        ) AS likeCount,
+                        (
+                            SELECT COUNT(*)
+                            FROM community_post_comment post_comment
+                            WHERE post_comment.post_id = p.post_id
+                              AND post_comment.deleted_at IS NULL
+                        ) AS commentCount
                     FROM community_post p
                     JOIN member m
                         ON m.member_id = p.author_member_id
@@ -83,7 +89,13 @@ public interface CommunityPostQueryRepository extends Repository<CommunityPost, 
                             SELECT COUNT(*)
                             FROM community_post_like post_like
                             WHERE post_like.post_id = p.post_id
-                        ) AS likeCount
+                        ) AS likeCount,
+                        (
+                            SELECT COUNT(*)
+                            FROM community_post_comment post_comment
+                            WHERE post_comment.post_id = p.post_id
+                              AND post_comment.deleted_at IS NULL
+                        ) AS commentCount
                     FROM community_post p
                     JOIN member m
                         ON m.member_id = p.author_member_id
@@ -100,4 +112,6 @@ public interface CommunityPostQueryRepository extends Repository<CommunityPost, 
             @Param("postId") Long postId,
             @Param("postKind") String postKind
     );
+
+    boolean existsByPostIdAndPostKind(Long postId, String postKind);
 }

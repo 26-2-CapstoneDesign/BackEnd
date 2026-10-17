@@ -13,6 +13,7 @@ public record CommunityPostDetailResponse(
         String body,
         String version,
         long viewCount,
-        long likeCount
+        long likeCount,
+        long commentCount
 ) {
 }

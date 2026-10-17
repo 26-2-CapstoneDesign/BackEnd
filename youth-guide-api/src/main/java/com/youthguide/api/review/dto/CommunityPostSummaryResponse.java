@@ -11,6 +11,7 @@ public record CommunityPostSummaryResponse(
         Instant createdAt,
         Instant updatedAt,
         long viewCount,
-        long likeCount
+        long likeCount,
+        long commentCount
 ) {
 }

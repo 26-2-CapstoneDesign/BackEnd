@@ -28,6 +28,9 @@ class CommunityPostQueryRepositoryTest {
                 .contains("c.display_name LIKE :qPattern ESCAPE '\\\\'")
                 .contains("COALESCE(pm.view_count, 0) AS viewCount")
                 .contains("FROM community_post_like post_like")
+                .contains("FROM community_post_comment post_comment")
+                .contains("post_comment.deleted_at IS NULL")
+                .contains("AS commentCount")
                 .contains("ORDER BY p.created_at DESC, p.post_id DESC");
 
         assertThat(query.countQuery())
@@ -51,6 +54,9 @@ class CommunityPostQueryRepositoryTest {
                 .contains("p.post_id = :postId")
                 .contains("p.post_kind = :postKind")
                 .contains("COALESCE(pm.view_count, 0) AS viewCount")
-                .contains("FROM community_post_like post_like");
+                .contains("FROM community_post_like post_like")
+                .contains("FROM community_post_comment post_comment")
+                .contains("post_comment.deleted_at IS NULL")
+                .contains("AS commentCount");
     }
 }
