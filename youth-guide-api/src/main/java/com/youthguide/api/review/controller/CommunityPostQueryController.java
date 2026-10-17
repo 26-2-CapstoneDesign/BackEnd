@@ -1,9 +1,12 @@
 package com.youthguide.api.review.controller;
 
+import com.youthguide.api.global.security.LoginMember;
 import com.youthguide.api.review.dto.CommunityPostDetailResponse;
 import com.youthguide.api.review.dto.CommunityPostPageResponse;
+import com.youthguide.api.review.service.CommunityPostCommandService;
 import com.youthguide.api.review.service.CommunityPostQueryService;
 import jakarta.validation.constraints.Min;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,9 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class CommunityPostQueryController {
 
     private final CommunityPostQueryService communityPostQueryService;
+    private final CommunityPostCommandService communityPostCommandService;
 
-    public CommunityPostQueryController(CommunityPostQueryService communityPostQueryService) {
+    public CommunityPostQueryController(
+            CommunityPostQueryService communityPostQueryService,
+            CommunityPostCommandService communityPostCommandService
+    ) {
         this.communityPostQueryService = communityPostQueryService;
+        this.communityPostCommandService = communityPostCommandService;
     }
 
     @GetMapping
@@ -30,7 +38,13 @@ public class CommunityPostQueryController {
     }
 
     @GetMapping("/{postId}")
-    public CommunityPostDetailResponse getPost(@PathVariable Long postId) {
+    public CommunityPostDetailResponse getPost(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal LoginMember loginMember
+    ) {
+        if (loginMember != null) {
+            communityPostCommandService.incrementViewCount(postId);
+        }
         return communityPostQueryService.getPost(postId);
     }
 }

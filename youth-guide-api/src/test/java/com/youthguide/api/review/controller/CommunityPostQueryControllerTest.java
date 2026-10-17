@@ -7,12 +7,14 @@ import com.youthguide.api.review.dto.CommunityPostAuthorResponse;
 import com.youthguide.api.review.dto.CommunityPostDetailResponse;
 import com.youthguide.api.review.dto.CommunityPostPageResponse;
 import com.youthguide.api.review.dto.CommunityPostSummaryResponse;
+import com.youthguide.api.review.service.CommunityPostCommandService;
 import com.youthguide.api.review.service.CommunityPostQueryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -32,11 +34,15 @@ class CommunityPostQueryControllerTest {
     @Mock
     private CommunityPostQueryService service;
 
+    @Mock
+    private CommunityPostCommandService commandService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = standaloneSetup(new CommunityPostQueryController(service))
+        mockMvc = standaloneSetup(new CommunityPostQueryController(service, commandService))
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -76,6 +82,7 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(service).getPosts("정보처리", 2, 5);
+        verifyNoInteractions(commandService);
     }
 
     @Test
@@ -89,6 +96,7 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.size").value(20));
 
         verify(service).getPosts(null, 0, 20);
+        verifyNoInteractions(commandService);
     }
 
     @Test
@@ -100,7 +108,7 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
                 .andExpect(jsonPath("$.fieldErrors").isArray());
 
-        verifyNoInteractions(service);
+        verifyNoInteractions(service, commandService);
     }
 
     @Test
@@ -112,7 +120,7 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
                 .andExpect(jsonPath("$.fieldErrors").isArray());
 
-        verifyNoInteractions(service);
+        verifyNoInteractions(service, commandService);
     }
 
     @Test
@@ -143,6 +151,7 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(service).getPost(101L);
+        verifyNoInteractions(commandService);
     }
 
     @Test
@@ -154,5 +163,7 @@ class CommunityPostQueryControllerTest {
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("게시글을 찾을 수 없습니다."))
                 .andExpect(jsonPath("$.fieldErrors").isArray());
+
+        verifyNoInteractions(commandService);
     }
 }

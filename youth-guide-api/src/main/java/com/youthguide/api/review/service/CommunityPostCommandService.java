@@ -117,6 +117,13 @@ public class CommunityPostCommandService {
         return new CommunityPostLikeResponse(false, repository.countPostLikesByPostId(postId));
     }
 
+    public void incrementViewCount(Long postId) {
+        int affectedRows = repository.incrementPostViewCount(postId, CommunityPostKind.EXAM_REVIEW);
+        if (affectedRows == 0) {
+            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
+        }
+    }
+
     private void lockExamReviewPost(Long postId) {
         repository.findForUpdateByPostIdAndPostKind(postId, CommunityPostKind.EXAM_REVIEW)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
