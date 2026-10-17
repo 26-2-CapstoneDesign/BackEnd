@@ -30,7 +30,7 @@ public class CertificateQueryService {
             "WRITTEN_REGISTRATION", "WRITTEN_ADDITIONAL_REGISTRATION", "WRITTEN_EXAM",
             "WRITTEN_RESULT", "PRACTICAL_REGISTRATION", "PRACTICAL_EXAM", "FINAL_RESULT");
 
-    private static final Map<String, String> EVENT_LABEL = Map.of(
+    public static final Map<String, String> EVENT_LABEL = Map.of(
             "WRITTEN_REGISTRATION", "필기 원서접수",
             "WRITTEN_ADDITIONAL_REGISTRATION", "필기 추가접수",
             "WRITTEN_EXAM", "필기시험",
